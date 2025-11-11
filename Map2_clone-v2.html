@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>map</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-md5@0.7.3/src/md5.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        #filters {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            font-family: Arial, sans-serif;
+            z-index: 1;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .filter-section {
+            margin-bottom: 15px;
+        }
+
+        .filter-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .filter-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .toggle-container-small {
+            font-family: Arial, sans-serif;
+        }
+
+        .toggle-label-small {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .toggle-name-small {
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .toggle-switch-small {
+            position: relative;
+            width: 32px;
+            height: 18px;
+            margin-right: 8px;
+        }
+
+        .toggle-input-small {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+
+        .toggle-slider-small {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.2s;
+            border-radius: 18px;
+        }
+
+        .toggle-slider-small:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: 0.2s;
+            border-radius: 50%;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-input-small:checked+.toggle-slider-small {
+            background-color: #4CAF50;
+        }
+
+        .toggle-input-small:checked+.toggle-slider-small:before {
+            transform: translateX(14px);
+        }
+
+        .toggle-input-small:focus+.toggle-slider-small {
+            box-shadow: 0 0 1px #4CAF50;
+        }
+
+        .toggle-color-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid #999;
+            margin-right: 6px;
+            flex: 0 0 auto;
+        }
+
+        .toggle-name-wrap-small {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #housefront-filter {
+            margin-top: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            color: #333;
+            user-select: none;
+        }
+
+        #housefront-filter .filter-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        #housefront-filter .radio-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        #housefront-filter label {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        #housefront-filter input[type="radio"] {
+            margin-right: 4px;
+        }
+
+        /* Popup styles */
+        .mapboxgl-popup-content {
+            padding: 15px;
+            min-width: 250px;
+        }
+
+        .popup-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .popup-row {
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .popup-label {
+            font-weight: bold;
+            color: #666;
+        }
+
+        .popup-value {
+            color: #333;
+        }
+
+        .popup-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .popup-button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+            display: inline-block;
+        }
+
+        .popup-button.pictures {
+            background: #28a745;
+        }
+
+        .popup-button.feedback {
+            background: #17a2b8;
+        }
+
+        .popup-button:hover {
+            opacity: 0.8;
+        }
+
+        .popup-button.disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <div id="filters"></div>
+
+    <script>
+        function checkLogin() {
+            const username = prompt("Enter username:");
+            if (!username) return false;
+
+            const password = prompt("Enter password:");
+            if (!password) return false;
+
+            const validCredentials = {
+                'DCCTeam': 'ebc60703e805611515a3ef3d6cc76c57',
+                'Bleeper': 'd21f33c518b5d3c736161ad30c5f1f62',
+                'admin': '098f6bcd4621d373cade4e832627b4f6'
+            };
+
+            const hashedPassword = md5(password);
+
+            if (validCredentials[username] && validCredentials[username] === hashedPassword) {
+                return true;
+            } else {
+                alert("Invalid username or password!");
+                return false;
+            }
+        }
+
+        // if (!checkLogin()) {
+        //     document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
+        //     throw new Error("Access denied");
+        // }
+
+        const filters = document.getElementById('filters');
+
+        const appData = {
+            pins: [],
+            housefrontFilter: "all",
+            locationPins: [],
+            groupStates: {},
+            availableGroups: []
+        };
+
+        const filterGroupOptions = {
+            "Bleeper Locations Planning": { color: "orange", sortOrder: 0 },
+            "Awaiting MM review": { color: "#800080", sortOrder: 1 },
+            "MM feedback provided": { color: "#0000FF", sortOrder: 2 },
+            "Awaiting PE review": { color: "#000000", sortOrder: 3 },
+            "Denied": { color: "#FF0000", sortOrder: 4 },
+            "Approved": { color: "#FFA500", sortOrder: 5 },
+            "Installed": { color: "#008000", sortOrder: 6 }
+        };
+
+        mapboxgl.accessToken = 'pk.eyJ1IjoicGF0cnlrLXdhc2lrIiwiYSI6ImNsenYybWswODAycXQyaXMybjE5djhvM2kifQ.79z21hharyuCVPDefwAimA';
+        const map = (window.map = new mapboxgl.Map({
+            container: 'map',
+            center: [-6.29059, 53.3695],
+            zoom: 11.81,
+            style: 'mapbox://styles/patryk-wasik/cmd2x9ey300c301s9f48y1tzd',
+        }));
+
+        function updateHousefrontData() {
+            const filteredPins = appData.pins.filter(pin => {
+                const housefrontEnabled = appData.housefrontFilter === "all" ||
+                    (pin.properties.housefront && pin.properties.housefront.toLowerCase() === appData.housefrontFilter);
+                return housefrontEnabled;
+            });
+
+            const geojson = {
+                "type": "FeatureCollection",
+                "features": filteredPins
+            };
+
+            map.getSource('pins').setData(geojson);
+        }
+
+        function updateLocationData() {
+            const filteredPins = appData.locationPins.filter(pin => {
+                const groupEnabled = appData.groupStates[pin.properties.group] === true;
+                return groupEnabled;
+            });
+
+            const geojson = {
+                "type": "FeatureCollection",
+                "features": filteredPins
+            };
+
+            map.getSource('location-pins').setData(geojson);
+        }
+
+        function createToggleDiv(name, onToggle, initialState = false, color = null) {
+            const container = document.createElement('div');
+            container.className = 'toggle-container-small';
+
+            const label = document.createElement('label');
+            label.className = 'toggle-label-small';
+
+            const switchDiv = document.createElement('div');
+            switchDiv.className = 'toggle-switch-small';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = initialState;
+            input.className = 'toggle-input-small';
+
+            const slider = document.createElement('span');
+            slider.className = 'toggle-slider-small';
+
+            input.addEventListener('change', function () {
+                if (onToggle) {
+                    onToggle(this.checked, name);
+                }
+            });
+
+            switchDiv.appendChild(input);
+            switchDiv.appendChild(slider);
+
+            const nameWrap = document.createElement('span');
+            nameWrap.className = 'toggle-name-wrap-small';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'toggle-name-small';
+            nameSpan.textContent = name;
+
+            nameWrap.appendChild(nameSpan);
+
+            if (color) {
+                const colorDot = document.createElement('span');
+                colorDot.className = 'toggle-color-dot';
+                colorDot.style.backgroundColor = color;
+                nameWrap.appendChild(colorDot);
+            }
+
+            label.appendChild(switchDiv);
+            label.appendChild(nameWrap);
+            container.appendChild(label);
+
+            return container;
+        }
+
+        function createHousefrontFilter() {
+            const container = document.createElement('div');
+            container.id = "housefront-filter";
+
+            const title = document.createElement('div');
+            title.className = 'filter-title';
+            title.textContent = "Housefront:";
+            container.appendChild(title);
+
+            const radioContainer = document.createElement('div');
+            radioContainer.className = 'radio-container';
+
+            ["all", "yes", "no"].forEach(value => {
+                const label = document.createElement('label');
+                const input = document.createElement('input');
+                input.type = "radio";
+                input.name = "housefront";
+                input.value = value;
+                if (value === "all") input.checked = true;
+
+                input.addEventListener('change', () => {
+                    appData.housefrontFilter = value;
+                    updateHousefrontData();
+                });
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(value.charAt(0).toUpperCase() + value.slice(1)));
+                radioContainer.appendChild(label);
+            });
+
+            container.appendChild(radioContainer);
+            return container;
+        }
+
+        function createPopupContent(properties) {
+            const picturesUrl = properties.pictures_url || '';
+            const feedbackUrl = properties.feedback_url || '';
+            const isPicturesValid = picturesUrl && picturesUrl.trim() !== '' && picturesUrl !== '-';
+            const isFeedbackValid = feedbackUrl && feedbackUrl.trim() !== '' && feedbackUrl !== '-';
+
+            return `
+                <div class="popup-title">${properties.name || 'Location'}</div>
+                <div class="popup-row">
+                    <span class="popup-label">Ref:</span>
+                    <span class="popup-value">${properties.ref || '-'}</span>
+                </div>
+                <div class="popup-row">
+                    <span class="popup-label">Group:</span>
+                    <span class="popup-value">${properties.group || '-'}</span>
+                </div>
+                <div class="popup-row">
+                    <span class="popup-label">Feedback:</span>
+                    <span class="popup-value">${properties.feedback || '-'}</span>
+                </div>
+                <div class="popup-buttons">
+                    <a href="${isPicturesValid ? picturesUrl : '#'}" 
+                       class="popup-button pictures ${!isPicturesValid ? 'disabled' : ''}" 
+                       target="_blank"
+                       ${!isPicturesValid ? 'onclick="return false;"' : ''}>
+                        Pictures
+                    </a>
+                    <a href="${isFeedbackValid ? feedbackUrl : '#'}" 
+                       class="popup-button feedback ${!isFeedbackValid ? 'disabled' : ''}" 
+                       target="_blank"
+                       ${!isFeedbackValid ? 'onclick="return false;"' : ''}>
+                        Feedback
+                    </a>
+                </div>
+            `;
+        }
+
+        map.on('style.load', () => {
+            map.addSource('satellite-source', {
+                type: 'raster',
+                url: 'mapbox://mapbox.satellite',
+                tileSize: 256
+            });
+
+            map.addLayer({
+                id: 'satellite-layer',
+                type: 'raster',
+                source: 'satellite-source',
+                layout: {
+                    visibility: 'none'
+                },
+                paint: {
+                    'raster-opacity': 0.8
+                }
+            });
+
+            // Housefront pins source and layer
+            map.addSource('pins', {
+                "type": "geojson",
+                "data": {
+                    "type": "FeatureCollection",
+                    "features": []
+                }
+            });
+
+            map.addLayer({
+                "id": "pins",
+                "type": "circle",
+                "source": "pins",
+                "paint": {
+                    "circle-radius": 16,
+                    "circle-color": ['get', 'color'],
+                    "circle-stroke-width": 3,
+                    "circle-stroke-color": "#FFFFFF"
+                }
+            });
+
+            map.addLayer({
+                'id': 'price-labels',
+                'type': 'symbol',
+                'source': 'pins',
+                'layout': {
+                    'visibility': 'visible',
+                    'text-field': ['get', 'ref'],
+                    'icon-text-fit': 'both',
+                    'icon-image': 'popup',
+                    'icon-allow-overlap': false,
+                    'text-allow-overlap': false,
+                    'text-ignore-placement': false,
+                    'icon-ignore-placement': false,
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                    'text-size': 12,
+                    'text-color': '#000000',
+                    'text-offset': [0, 0],
+                }
+            });
+
+            // Location pins source and layer
+            map.addSource('location-pins', {
+                "type": "geojson",
+                "data": {
+                    "type": "FeatureCollection",
+                    "features": []
+                }
+            });
+
+            map.addLayer({
+                "id": "location-pins",
+                "type": "circle",
+                "source": "location-pins",
+                "paint": {
+                    "circle-radius": 10,
+                    "circle-color": ['get', 'color'],
+                    "circle-stroke-width": 2,
+                    "circle-stroke-color": "#FFFFFF"
+                }
+            });
+
+            // Click event for housefront pins
+            map.on('click', 'pins', (e) => {
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                const description = e.features[0].properties.description;
+
+                while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                    coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                }
+
+                new mapboxgl.Popup({ closeOnClick: true, offset: 5 })
+                    .setLngLat(coordinates)
+                    .setHTML(description)
+                    .addTo(map);
+            });
+
+            // Click event for location pins
+            map.on('click', 'location-pins', (e) => {
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                const properties = e.features[0].properties;
+
+                while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                    coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                }
+
+                new mapboxgl.Popup({ closeOnClick: true, offset: 5 })
+                    .setLngLat(coordinates)
+                    .setHTML(createPopupContent(properties))
+                    .addTo(map);
+            });
+
+            map.on('mouseenter', 'pins', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', 'pins', () => {
+                map.getCanvas().style.cursor = '';
+            });
+
+            map.on('mouseenter', 'location-pins', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', 'location-pins', () => {
+                map.getCanvas().style.cursor = '';
+            });
+
+            // Load housefront data
+            d3.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTCug3Ckya-3WVZ-PvVx9joPo_CGOdIBg2UZBx7FhCrgZhi2YFOtbbc3xtP9vS5esuf9S_iJVvJxOgD/pub?output=csv")
+                .then(function (data) {
+                    data.forEach(d => {
+                        const [lat, lng] = d.Coordinates.split(',').map(Number);
+                        if (isNaN(lat) || isNaN(lng)) return;
+
+                        const housefrontValue = d.Housefront ? d.Housefront.toLowerCase() : "no";
+                        let pinColor = "#d62728";
+                        if (housefrontValue === "yes") {
+                            pinColor = "#2ca02c";
+                        }
+
+                        const pin = {
+                            "type": "Feature",
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [lng, lat]
+                            },
+                            "properties": {
+                                "title": d.Name,
+                                "description": `<h3>${d.Text}</h3>Housefront: ${d.Housefront || "N/A"}<br/>Bike Types: ${d.Biketype || "N/A"}`,
+                                "icon": "monument",
+                                "type": d.Type.toLowerCase(),
+                                "color": pinColor,
+                                "ref": d.Ref ? `${d.Ref}` : "N/A",
+                                "priority": parseFloat(d.Ref) || 0,
+                                "housefront": housefrontValue,
+                                "biketype": d.Biketype ? d.Biketype : ""
+                            }
+                        };
+                        appData.pins.push(pin);
+                    });
+
+                    const section1 = document.createElement('div');
+                    section1.className = 'filter-section';
+                    const title1 = document.createElement('div');
+                    title1.className = 'filter-title';
+                    title1.textContent = 'Bike Parking';
+                    section1.appendChild(title1);
+                    section1.appendChild(createHousefrontFilter());
+                    filters.appendChild(section1);
+
+                    filters.appendChild(document.createElement('hr'));
+
+                    updateHousefrontData();
+                })
+                .catch(function (error) {
+                    console.error('Error loading housefront data:', error);
+                });
+
+            // Load location data
+            d3.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTdAxT95TqOlRA4N0vk5_FZSdwribyYReI0q7hpGzaTzbs0X5KlG0NTtkDeC8GXeZ1t_8qfKaYftVU6/pub?output=csv")
+                .then(function (data) {
+                    const uniqueGroups = [...new Set(
+                        data.map(d => d.group)
+                            .filter(g => g && g.trim() !== '')
+                    )];
+
+                    appData.availableGroups = uniqueGroups.sort((a, b) => {
+                        const optionA = filterGroupOptions[a];
+                        const optionB = filterGroupOptions[b];
+                        const orderA = optionA ? optionA.sortOrder : 999;
+                        const orderB = optionB ? optionB.sortOrder : 999;
+                        return orderA - orderB;
+                    });
+
+                    appData.availableGroups.forEach(group => {
+                        appData.groupStates[group] = true;
+                    });
+
+                    data.forEach(d => {
+                        if (!d.coordinates || !d.coordinates.includes(',')) return;
+
+                        const [lat, lng] = d.coordinates.split(',').map(Number);
+                        if (isNaN(lat) || isNaN(lng)) return;
+
+                        const group = d.group || '';
+                        const color = filterGroupOptions[group] ? filterGroupOptions[group].color : '#4285f4';
+
+                        const pin = {
+                            "type": "Feature",
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [lng, lat]
+                            },
+                            "properties": {
+                                "name": d.name || 'Location',
+                                "ref": d.Ref || '-',
+                                "group": group,
+                                "feedback": d.Feedback || '-',
+                                "pictures_url": d['URL to behind the "pictures" button'] || '',
+                                "feedback_url": d['URL to display behind the "feedback" button'] || '',
+                                "color": color
+                            }
+                        };
+                        appData.locationPins.push(pin);
+                    });
+
+                    const section2 = document.createElement('div');
+                    section2.className = 'filter-section';
+                    const title2 = document.createElement('div');
+                    title2.className = 'filter-title';
+                    title2.textContent = 'Locations';
+                    section2.appendChild(title2);
+
+                    appData.availableGroups.forEach(group => {
+                        const color = filterGroupOptions[group] ? filterGroupOptions[group].color : '#4285f4';
+                        const toggle = createToggleDiv(
+                            group,
+                            (state) => {
+                                appData.groupStates[group] = state;
+                                updateLocationData();
+                            },
+                            true,
+                            color
+                        );
+                        section2.appendChild(toggle);
+                    });
+
+                    filters.appendChild(section2);
+
+                    filters.appendChild(document.createElement('hr'));
+
+                    const section3 = document.createElement('div');
+                    section3.className = 'filter-section';
+                    const title3 = document.createElement('div');
+                    title3.className = 'filter-title';
+                    title3.textContent = 'Map Controls';
+                    section3.appendChild(title3);
+
+                    section3.appendChild(createToggleDiv("SATELLITE", () => {
+                        const visibility = map.getLayoutProperty('satellite-layer', 'visibility');
+                        map.setLayoutProperty('satellite-layer', 'visibility', visibility === 'visible' ? 'none' : 'visible');
+                    }, false));
+
+                    section3.appendChild(createToggleDiv("PRIORITY", () => {
+                        const visibility = map.getLayoutProperty('price-labels', 'visibility');
+                        map.setLayoutProperty('price-labels', 'visibility', visibility === 'visible' ? 'none' : 'visible');
+                    }, true));
+
+                    section3.appendChild(createToggleDiv("ALLOW OVERLAP", (state) => {
+                        map.setLayoutProperty('price-labels', 'text-allow-overlap', state);
+                        map.setLayoutProperty('price-labels', 'icon-allow-overlap', state);
+                    }, false));
+
+                    filters.appendChild(section3);
+
+                    updateLocationData();
+                })
+                .catch(function (error) {
+                    console.error('Error loading location data:', error);
+                });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -84,7 +85,6 @@
             font-weight: 500;
             color: #333;
             flex-grow: 1;
-            /* Allow name span to grow and fill space */
         }
 
         .toggle-switch {
@@ -378,7 +378,7 @@
     <script>
 
         const filterGroupOptions = {
-            "Bleeper Locations Planning": { color: "orange", sortOrder: 0 },   // purple
+            "Bleeper Locations Planning": { color: "#FFA500", sortOrder: 0 },   // orange
             "Awaiting MM review": { color: "#800080", sortOrder: 1 },   // purple
             "MM feedback provided": { color: "#0000FF", sortOrder: 2 }, // blue
             "Awaiting PE review": { color: "#000000", sortOrder: 3 },   // black
@@ -386,7 +386,6 @@
             "Approved": { color: "#FFA500", sortOrder: 5 },             // orange
             "Installed": { color: "#008000", sortOrder: 6 }             // green
         }
-
 
         function checkLogin() {
             const username = prompt("Enter username:");
@@ -417,7 +416,10 @@
         // }
 
         const AppConfig = {
-            CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdAxT95TqOlRA4N0vk5_FZSdwribyYReI0q7hpGzaTzbs0X5KlG0NTtkDeC8GXeZ1t_8qfKaYftVU6/pub?output=csv",
+            CSV_URLS: [
+                "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdAxT95TqOlRA4N0vk5_FZSdwribyYReI0q7hpGzaTzbs0X5KlG0NTtkDeC8GXeZ1t_8qfKaYftVU6/pub?output=csv",
+                "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdAxT95TqOlRA4N0vk5_FZSdwribyYReI0q7hpGzaTzbs0X5KlG0NTtkDeC8GXeZ1t_8qfKaYftVU6/pub?output=csv"
+            ],
             GROUP_COLUMN: 'group',
             DEFAULT_CENTER: { lat: 53.350379, lng: -6.269649 },
             CLUSTER_CONFIG: {
@@ -436,7 +438,7 @@
                 availableGroups: [],
                 groupStates: {},
                 csvData: [],
-                clusteringEnabled: true // initialize clustering enabled state
+                clusteringEnabled: true
             },
             getMarkerConfig() {
                 return {
@@ -467,7 +469,7 @@
                     streetViewControl: false,
                     mapTypeControl: true,
                     mapTypeControlOptions: {
-                        style: google.maps.MapTypeControlStyle.DEFAULT_CENTER,
+                        style: google.maps.MapTypeControlStyle.DEFAULT,
                         position: google.maps.ControlPosition.TOP_LEFT
                     },
                     mapTypeId: 'roadmap',
@@ -495,38 +497,40 @@
             },
             async loadData() {
                 try {
-                    const data = await d3.csv(AppConfig.CSV_URL);
-                    console.log('CSV data loaded:', data);
-                    this.data.csvData = data;
-                    this.extractUniqueGroups(data);
+                    // Load data from all CSV sources
+                    const dataPromises = AppConfig.CSV_URLS.map(url => d3.csv(url));
+                    const allDataSets = await Promise.all(dataPromises);
+
+                    // Combine all datasets into one
+                    const combinedData = allDataSets.flat();
+                    console.log('Combined CSV data loaded:', combinedData.length, 'records');
+
+                    this.data.csvData = combinedData;
+                    this.extractUniqueGroups(combinedData);
                     this.createFilterToggles();
-                    this.createMarkers(data);
+                    this.createMarkers(combinedData);
                     this.updateMarkerVisibility();
                 } catch (error) {
                     console.error('Data loading error:', error);
                 }
             },
             extractUniqueGroups(data) {
-                const GROUP_COLORS = [
-                    '#4285f4', '#db4437', '#f4b400', '#0f9d58',
-                    '#ab47bc', '#00acc1', '#ff7043', '#9e9d24',
-                    '#5c6bc0', '#c2185b'
-                ];
                 const uniqueGroups = [...new Set(
                     data.map(d => d[AppConfig.GROUP_COLUMN])
                         .filter(g => g && g.trim() !== '')
                 )];
-                this.data.availableGroups = uniqueGroups.map((group, i) => ({
+
+                this.data.availableGroups = uniqueGroups.map(group => ({
                     group,
-                    color: GROUP_COLORS[i % GROUP_COLORS.length]
+                    color: filterGroupOptions[group]?.color || '#4285f4'
                 }));
+
                 this.data.availableGroups.forEach(g => {
                     this.data.groupStates[g.group] = true;
                 });
             },
             createFilterToggles() {
                 const filtersEl = document.getElementById('filters');
-
 
                 // Add group toggles
                 this.data.availableGroups
@@ -538,9 +542,7 @@
                         return orderA - orderB;
                     })
                     .forEach(g => {
-                        const color = filterGroupOptions[g.group] ? filterGroupOptions[g.group].color : "#4285f4";
-                        //console.log('g.group', g.group, filterGroupOptions[g.group].color);
-                        console.log('color', color);
+                        const color = filterGroupOptions[g.group]?.color || "#4285f4";
                         filtersEl.appendChild(
                             this.createToggle(g.group, true, color, (state) => this.handleToggle(state, g.group))
                         );
@@ -576,7 +578,6 @@
                 input.checked = initialState;
                 input.className = 'toggle-input';
 
-                // Use the passed callback for onChange event
                 input.addEventListener('change', () => {
                     onToggleCallback && onToggleCallback(input.checked);
                 });
@@ -594,15 +595,15 @@
                 data
                     .filter(d => d.coordinates && d.coordinates.includes(','))
                     .forEach(d => {
-                        console.log('d', d);
                         const [lat, lng] = d.coordinates.split(',').map(Number);
-                        const groupEntry = this.data.availableGroups.find(g => g.group === (d[AppConfig.GROUP_COLUMN] || ''));
-                        const markerColor = filterGroupOptions[d.group] ? filterGroupOptions[d.group].color : '#4285f4';
+                        const markerColor = filterGroupOptions[d.group]?.color || '#4285f4';
+
                         const marker = new google.maps.Marker({
                             position: { lat, lng },
                             title: d.name || 'Location',
                             icon: Object.assign(this.getMarkerConfig(), { fillColor: markerColor })
                         });
+
                         marker.csvData = d;
                         marker.groupValue = d[AppConfig.GROUP_COLUMN] || '';
                         this.setupMarkerListeners(marker, lat, lng, d);
@@ -648,15 +649,12 @@
                             markers: filteredMarkers,
                             algorithm: new markerClusterer.GridAlgorithm(AppConfig.CLUSTER_CONFIG),
                         });
-                        // Hide individual markers (they are clustered)
                         filteredMarkers.forEach(marker => marker.setMap(null));
                     } else {
-                        // Show individual markers without clustering
                         filteredMarkers.forEach(marker => marker.setMap(this.map));
                     }
                 }
 
-                // Hide markers not in filtered list
                 this.data.allMarkers.forEach(marker => {
                     if (!filteredMarkers.includes(marker)) {
                         marker.setMap(null);
