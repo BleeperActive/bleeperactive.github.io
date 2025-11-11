@@ -296,6 +296,16 @@
         }));
 
         function updateHousefrontData() {
+            // If "none" is selected, show no pins
+            if (appData.housefrontFilter === "none") {
+                const geojson = {
+                    "type": "FeatureCollection",
+                    "features": []
+                };
+                map.getSource('pins').setData(geojson);
+                return;
+            }
+
             const filteredPins = appData.pins.filter(pin => {
                 const housefrontEnabled = appData.housefrontFilter === "all" ||
                     (pin.properties.housefront && pin.properties.housefront.toLowerCase() === appData.housefrontFilter);
@@ -386,7 +396,7 @@
             const radioContainer = document.createElement('div');
             radioContainer.className = 'radio-container';
 
-            ["all", "yes", "no"].forEach(value => {
+            ["all", "yes", "no", "none"].forEach(value => {
                 const label = document.createElement('label');
                 const input = document.createElement('input');
                 input.type = "radio";
