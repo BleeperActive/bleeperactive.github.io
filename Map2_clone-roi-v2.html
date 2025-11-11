@@ -282,9 +282,10 @@
             "Awaiting MM review": { color: "#800080", sortOrder: 1 },
             "MM feedback provided": { color: "#0000FF", sortOrder: 2 },
             "Awaiting PE review": { color: "#000000", sortOrder: 3 },
-            "Denied": { color: "#FF0000", sortOrder: 4 },
-            "Approved": { color: "#FFA500", sortOrder: 5 },
-            "Installed": { color: "#008000", sortOrder: 6 }
+            "Awaiting Installation": { color: "#FFA500", sortOrder: 4 },
+            "Denied": { color: "#FF0000", sortOrder: 5 },
+            "Approved": { color: "#FFA500", sortOrder: 6 },
+            "Installed": { color: "#008000", sortOrder: 7 }
         };
 
         mapboxgl.accessToken = 'pk.eyJ1IjoicGF0cnlrLXdhc2lrIiwiYSI6ImNsenYybWswODAycXQyaXMybjE5djhvM2kifQ.79z21hharyuCVPDefwAimA';
@@ -487,9 +488,9 @@
                 "type": "circle",
                 "source": "pins",
                 "paint": {
-                    "circle-radius": 16,
+                    "circle-radius": 8,
                     "circle-color": ['get', 'color'],
-                    "circle-stroke-width": 3,
+                    "circle-stroke-width": 1,
                     "circle-stroke-color": "#FFFFFF"
                 }
             });
