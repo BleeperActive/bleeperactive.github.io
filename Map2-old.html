@@ -36,7 +36,7 @@
             padding: 15px;
             font-family: Arial, sans-serif;
             z-index: 1000;
-            max-height: 500px;
+            max-height: 400px;
             overflow-y: auto;
             min-width: 200px;
         }
@@ -137,51 +137,6 @@
 
         .toggle-input:focus+.toggle-slider {
             box-shadow: 0 0 1px #4285f4;
-        }
-
-        .radio-filter {
-            margin: 10px 0;
-            padding: 8px;
-            border-radius: 6px;
-            background: rgba(66, 133, 244, 0.05);
-        }
-
-        .radio-filter-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .radio-options {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .radio-option {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            padding: 2px 4px;
-            border-radius: 3px;
-            transition: background-color 0.2s ease;
-        }
-
-        .radio-option:hover {
-            background-color: rgba(66, 133, 244, 0.1);
-        }
-
-        .radio-option input[type="radio"] {
-            margin: 0 6px 0 0;
-            cursor: pointer;
-        }
-
-        .radio-option label {
-            font-size: 13px;
-            color: #333;
-            cursor: pointer;
-            flex-grow: 1;
         }
 
         #streetview-popup {
@@ -428,8 +383,7 @@
             "Awaiting PE review": { color: "#000000", sortOrder: 3 },   // black
             "Denied": { color: "#FF0000", sortOrder: 4 },               // red
             "Approved": { color: "#FFA500", sortOrder: 5 },             // orange
-            "Installed": { color: "#008000", sortOrder: 6 },             // green
-            "Bleeper Locations Planning": { color: "#fcec03", sortOrder: 7 } // gray
+            "Installed": { color: "#008000", sortOrder: 6 }             // green
         }
 
 
@@ -463,8 +417,6 @@
 
         const AppConfig = {
             CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTPqE_AH0J2pawMVjC7eJnkd7L6RhXlTSJ75EPSQyyrlH4lW3SsEGKtMDiiAzFAH3nEFZ-LfqG3lm3/pub?output=csv",
-            //CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdAxT95TqOlRA4N0vk5_FZSdwribyYReI0q7hpGzaTzbs0X5KlG0NTtkDeC8GXeZ1t_8qfKaYftVU6/pub?output=csv",
-            HOUSEFRONT_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTCug3Ckya-3WVZ-PvVx9joPo_CGOdIBg2UZBx7FhCrgZhi2YFOtbbc3xtP9vS5esuf9S_iJVvJxOgD/pub?output=csv",
             GROUP_COLUMN: 'group',
             DEFAULT_CENTER: { lat: 53.350379, lng: -6.269649 },
             CLUSTER_CONFIG: {
@@ -480,12 +432,9 @@
             streetViewService: null,
             data: {
                 allMarkers: [],
-                housefrontMarkers: [],
                 availableGroups: [],
                 groupStates: {},
                 csvData: [],
-                housefrontData: [],
-                housefrontFilter: 'All', // All, Yes, No, None
                 clusteringEnabled: true // initialize clustering enabled state
             },
             getMarkerConfig() {
@@ -498,25 +447,11 @@
                     strokeColor: 'white'
                 };
             },
-            getHouseMarkerConfig() {
-                // Create a custom house shape using SVG path
-                const housePath = 'M12 2 L22 12 L20 12 L20 20 L16 20 L16 14 L8 14 L8 20 L4 20 L4 12 L2 12 Z';
-                return {
-                    path: housePath,
-                    scale: 0.8,
-                    fillColor: '#8B4513', // Brown color for house
-                    fillOpacity: 1,
-                    strokeWeight: 1,
-                    strokeColor: '#654321',
-                    anchor: new google.maps.Point(12, 20) // Anchor at bottom center
-                };
-            },
             async init() {
                 try {
                     await this.initializeMap();
                     await this.loadMarkerClusterer();
                     await this.loadData();
-                    await this.loadHousefrontData();
                     this.setupEventListeners();
                 } catch (error) {
                     console.error('Initialization error:', error);
@@ -570,16 +505,6 @@
                     console.error('Data loading error:', error);
                 }
             },
-            async loadHousefrontData() {
-                try {
-                    const data = await d3.csv(AppConfig.HOUSEFRONT_CSV_URL);
-                    console.log('Housefront CSV data loaded:', data);
-                    this.data.housefrontData = data;
-                    this.createHousefrontMarkers(data);
-                } catch (error) {
-                    console.error('Housefront data loading error:', error);
-                }
-            },
             extractUniqueGroups(data) {
                 const GROUP_COLORS = [
                     '#4285f4', '#db4437', '#f4b400', '#0f9d58',
@@ -619,11 +544,6 @@
                             this.createToggle(g.group, true, color, (state) => this.handleToggle(state, g.group))
                         );
                     });
-
-                filtersEl.appendChild(document.createElement('hr'));
-
-                // Add housefront filter
-                filtersEl.appendChild(this.createHousefrontFilter());
 
                 filtersEl.appendChild(document.createElement('hr'));
                 // Add clustering toggle
@@ -668,55 +588,6 @@
                 container.appendChild(label);
                 return container;
             },
-            createHousefrontFilter() {
-                const container = document.createElement('div');
-                container.className = 'radio-filter';
-
-                const title = document.createElement('div');
-                title.className = 'radio-filter-title';
-                title.textContent = 'Housefront';
-                container.appendChild(title);
-
-                const optionsContainer = document.createElement('div');
-                optionsContainer.className = 'radio-options';
-
-                const options = [
-                    { value: 'All', label: 'All' },
-                    { value: 'Yes', label: 'Yes' },
-                    { value: 'No', label: 'No' },
-                    { value: 'None', label: 'None' }
-                ];
-
-                options.forEach(option => {
-                    const optionDiv = document.createElement('div');
-                    optionDiv.className = 'radio-option';
-
-                    const radio = document.createElement('input');
-                    radio.type = 'radio';
-                    radio.name = 'housefront-filter';
-                    radio.value = option.value;
-                    radio.id = `housefront-${option.value}`;
-                    radio.checked = option.value === this.data.housefrontFilter;
-
-                    const label = document.createElement('label');
-                    label.htmlFor = `housefront-${option.value}`;
-                    label.textContent = option.label;
-
-                    radio.addEventListener('change', () => {
-                        if (radio.checked) {
-                            this.data.housefrontFilter = option.value;
-                            this.updateMarkerVisibility();
-                        }
-                    });
-
-                    optionDiv.appendChild(radio);
-                    optionDiv.appendChild(label);
-                    optionsContainer.appendChild(optionDiv);
-                });
-
-                container.appendChild(optionsContainer);
-                return container;
-            },
             createMarkers(data) {
                 this.data.allMarkers = [];
                 data
@@ -737,25 +608,6 @@
                         this.data.allMarkers.push(marker);
                     });
             },
-            createHousefrontMarkers(data) {
-                this.data.housefrontMarkers = [];
-                data
-                    .filter(d => d.Coordinates && d.Coordinates.includes(','))
-                    .forEach(d => {
-                        console.log('Creating housefront marker:', d);
-                        const [lat, lng] = d.Coordinates.split(',').map(Number);
-                        const marker = new google.maps.Marker({
-                            position: { lat, lng },
-                            title: d.Text || d.Ref || 'House Location',
-                            icon: this.getHouseMarkerConfig()
-                        });
-                        marker.csvData = d;
-                        marker.isHouseMarker = true;
-                        this.setupHousefrontMarkerListeners(marker, lat, lng, d);
-                        this.data.housefrontMarkers.push(marker);
-                    });
-                this.updateMarkerVisibility();
-            },
             setupMarkerListeners(marker, lat, lng, data) {
                 marker.addListener('click', () => this.showStreetView(lat, lng, data));
                 const infoWindow = new google.maps.InfoWindow({
@@ -764,28 +616,10 @@
                 marker.addListener('mouseover', () => infoWindow.open(this.map, marker));
                 marker.addListener('mouseout', () => infoWindow.close());
             },
-            setupHousefrontMarkerListeners(marker, lat, lng, data) {
-                marker.addListener('click', () => this.showStreetView(lat, lng, data));
-                const infoWindow = new google.maps.InfoWindow({
-                    content: this.createHousefrontInfoContent(data)
-                });
-                marker.addListener('mouseover', () => infoWindow.open(this.map, marker));
-                marker.addListener('mouseout', () => infoWindow.close());
-            },
             createInfoContent(data) {
                 let content = '<div style="max-width: 200px;">';
                 if (data.Ref) content += `<strong>Ref:</strong> ${data.Ref}<br>`;
                 if (data[AppConfig.GROUP_COLUMN]) content += `<strong>Group:</strong> ${data[AppConfig.GROUP_COLUMN]}<br>`;
-                content += '</div>';
-                return content;
-            },
-            createHousefrontInfoContent(data) {
-                let content = '<div style="max-width: 200px;">';
-                if (data.Ref) content += `<strong>Ref:</strong> ${data.Ref}<br>`;
-                if (data.Text) content += `<strong>Name:</strong> ${data.Text}<br>`;
-                if (data.Biketype) content += `<strong>Bike Type:</strong> ${data.Biketype}<br>`;
-                if (data.Type) content += `<strong>Type:</strong> ${data.Type}<br>`;
-                if (data.Housefront) content += `<strong>Housefront:</strong> ${data.Housefront}<br>`;
                 content += '</div>';
                 return content;
             },
@@ -829,30 +663,6 @@
                         marker.setMap(this.map);
                     }
                 });
-
-                // Handle housefront markers based on filter
-                this.data.housefrontMarkers.forEach(marker => {
-                    const shouldShow = this.shouldShowHousefrontMarker(marker);
-                    marker.setMap(shouldShow ? this.map : null);
-                });
-            },
-            shouldShowHousefrontMarker(marker) {
-                const filter = this.data.housefrontFilter;
-                const data = marker.csvData;
-                const housefrontValue = data.Housefront || '';
-                
-                switch (filter) {
-                    case 'All':
-                        return true;
-                    case 'Yes':
-                        return housefrontValue.toLowerCase() === 'yes';
-                    case 'No':
-                        return housefrontValue.toLowerCase() === 'no';
-                    case 'None':
-                        return false;
-                    default:
-                        return true;
-                }
             },
             showStreetView(lat, lng, data) {
                 const position = { lat, lng };
@@ -890,16 +700,9 @@
                 });
             },
             updateInfoFields(data) {
-                // Check if this is housefront data by looking for the marker flag or Housefront field
-                if (data.Housefront || data.isHouseMarker) {
-                    document.getElementById('ref-value').textContent = data.Ref || '-';
-                    document.getElementById('group-value').textContent = 'Housefront Location';
-                    document.getElementById('text-value').textContent = `${data.Text || ''} - ${data.Biketype || ''} (Type: ${data.Type || '-'})`;
-                } else {
-                    document.getElementById('ref-value').textContent = data.Ref || '-';
-                    document.getElementById('group-value').textContent = data[AppConfig.GROUP_COLUMN] || '-';
-                    document.getElementById('text-value').textContent = data.Feedback || '-';
-                }
+                document.getElementById('ref-value').textContent = data.Ref || '-';
+                document.getElementById('group-value').textContent = data[AppConfig.GROUP_COLUMN] || '-';
+                document.getElementById('text-value').textContent = data.Feedback || '-';
                 this.updateButton('pictures-button', data['URL to behind the "pictures" button']);
                 this.updateButton('feedback-button', data['URL to display behind the "feedback" button']);
             },
