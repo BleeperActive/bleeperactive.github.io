@@ -456,10 +456,10 @@
             }
         }
 
-        // if (!checkLogin()) {
-        //     document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
-        //     throw new Error("Access denied");
-        // }
+        if (!checkLogin()) {
+            document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
+            throw new Error("Access denied");
+        }
 
         const AppConfig = {
             CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTPqE_AH0J2pawMVjC7eJnkd7L6RhXlTSJ75EPSQyyrlH4lW3SsEGKtMDiiAzFAH3nEFZ-LfqG3lm3/pub?output=csv",
