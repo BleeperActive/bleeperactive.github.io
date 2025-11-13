@@ -139,6 +139,51 @@
             box-shadow: 0 0 1px #4285f4;
         }
 
+        .radio-filter {
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 6px;
+            background: rgba(66, 133, 244, 0.05);
+        }
+
+        .radio-filter-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .radio-options {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: background-color 0.2s ease;
+        }
+
+        .radio-option:hover {
+            background-color: rgba(66, 133, 244, 0.1);
+        }
+
+        .radio-option input[type="radio"] {
+            margin: 0 6px 0 0;
+            cursor: pointer;
+        }
+
+        .radio-option label {
+            font-size: 13px;
+            color: #333;
+            cursor: pointer;
+            flex-grow: 1;
+        }
+
         #streetview-popup {
             position: fixed;
             inset: 0;
@@ -440,6 +485,7 @@
                 groupStates: {},
                 csvData: [],
                 housefrontData: [],
+                housefrontFilter: 'All', // All, Yes, No, None
                 clusteringEnabled: true // initialize clustering enabled state
             },
             getMarkerConfig() {
@@ -575,6 +621,11 @@
                     });
 
                 filtersEl.appendChild(document.createElement('hr'));
+
+                // Add housefront filter
+                filtersEl.appendChild(this.createHousefrontFilter());
+
+                filtersEl.appendChild(document.createElement('hr'));
                 // Add clustering toggle
                 filtersEl.appendChild(
                     this.createToggle('Enable Clustering', true, '', (state) => {
@@ -615,6 +666,55 @@
 
                 label.append(colorCircle, nameSpan, switchDiv);
                 container.appendChild(label);
+                return container;
+            },
+            createHousefrontFilter() {
+                const container = document.createElement('div');
+                container.className = 'radio-filter';
+
+                const title = document.createElement('div');
+                title.className = 'radio-filter-title';
+                title.textContent = 'Housefront';
+                container.appendChild(title);
+
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'radio-options';
+
+                const options = [
+                    { value: 'All', label: 'All' },
+                    { value: 'Yes', label: 'Yes' },
+                    { value: 'No', label: 'No' },
+                    { value: 'None', label: 'None' }
+                ];
+
+                options.forEach(option => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'radio-option';
+
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = 'housefront-filter';
+                    radio.value = option.value;
+                    radio.id = `housefront-${option.value}`;
+                    radio.checked = option.value === this.data.housefrontFilter;
+
+                    const label = document.createElement('label');
+                    label.htmlFor = `housefront-${option.value}`;
+                    label.textContent = option.label;
+
+                    radio.addEventListener('change', () => {
+                        if (radio.checked) {
+                            this.data.housefrontFilter = option.value;
+                            this.updateMarkerVisibility();
+                        }
+                    });
+
+                    optionDiv.appendChild(radio);
+                    optionDiv.appendChild(label);
+                    optionsContainer.appendChild(optionDiv);
+                });
+
+                container.appendChild(optionsContainer);
                 return container;
             },
             createMarkers(data) {
@@ -685,7 +785,7 @@
                 if (data.Text) content += `<strong>Name:</strong> ${data.Text}<br>`;
                 if (data.Biketype) content += `<strong>Bike Type:</strong> ${data.Biketype}<br>`;
                 if (data.Type) content += `<strong>Type:</strong> ${data.Type}<br>`;
-                content += '<strong>Housefront:</strong> Yes<br>';
+                if (data.Housefront) content += `<strong>Housefront:</strong> ${data.Housefront}<br>`;
                 content += '</div>';
                 return content;
             },
@@ -730,10 +830,29 @@
                     }
                 });
 
-                // Always show housefront markers (they don't participate in clustering)
+                // Handle housefront markers based on filter
                 this.data.housefrontMarkers.forEach(marker => {
-                    marker.setMap(this.map);
+                    const shouldShow = this.shouldShowHousefrontMarker(marker);
+                    marker.setMap(shouldShow ? this.map : null);
                 });
+            },
+            shouldShowHousefrontMarker(marker) {
+                const filter = this.data.housefrontFilter;
+                const data = marker.csvData;
+                const housefrontValue = data.Housefront || '';
+                
+                switch (filter) {
+                    case 'All':
+                        return true;
+                    case 'Yes':
+                        return housefrontValue.toLowerCase() === 'yes';
+                    case 'No':
+                        return housefrontValue.toLowerCase() === 'no';
+                    case 'None':
+                        return false;
+                    default:
+                        return true;
+                }
             },
             showStreetView(lat, lng, data) {
                 const position = { lat, lng };
@@ -771,8 +890,8 @@
                 });
             },
             updateInfoFields(data) {
-                // Check if this is housefront data
-                if (data.Housefront === 'Yes') {
+                // Check if this is housefront data by looking for the marker flag or Housefront field
+                if (data.Housefront || data.isHouseMarker) {
                     document.getElementById('ref-value').textContent = data.Ref || '-';
                     document.getElementById('group-value').textContent = 'Housefront Location';
                     document.getElementById('text-value').textContent = `${data.Text || ''} - ${data.Biketype || ''} (Type: ${data.Type || '-'})`;
