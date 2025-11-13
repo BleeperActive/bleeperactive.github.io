@@ -384,7 +384,7 @@
             "Denied": { color: "#FF0000", sortOrder: 4 },               // red
             "Approved": { color: "#FFA500", sortOrder: 5 },             // orange
             "Installed": { color: "#008000", sortOrder: 6 },             // green
-            "Bleeper Locations Planning": { color: "#808080", sortOrder: 7 } // gray
+            "Bleeper Locations Planning": { color: "#fcec03", sortOrder: 7 } // gray
         }
 
 
@@ -419,6 +419,7 @@
         const AppConfig = {
             CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTPqE_AH0J2pawMVjC7eJnkd7L6RhXlTSJ75EPSQyyrlH4lW3SsEGKtMDiiAzFAH3nEFZ-LfqG3lm3/pub?output=csv",
             //CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdAxT95TqOlRA4N0vk5_FZSdwribyYReI0q7hpGzaTzbs0X5KlG0NTtkDeC8GXeZ1t_8qfKaYftVU6/pub?output=csv",
+            HOUSEFRONT_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTCug3Ckya-3WVZ-PvVx9joPo_CGOdIBg2UZBx7FhCrgZhi2YFOtbbc3xtP9vS5esuf9S_iJVvJxOgD/pub?output=csv",
             GROUP_COLUMN: 'group',
             DEFAULT_CENTER: { lat: 53.350379, lng: -6.269649 },
             CLUSTER_CONFIG: {
@@ -434,9 +435,11 @@
             streetViewService: null,
             data: {
                 allMarkers: [],
+                housefrontMarkers: [],
                 availableGroups: [],
                 groupStates: {},
                 csvData: [],
+                housefrontData: [],
                 clusteringEnabled: true // initialize clustering enabled state
             },
             getMarkerConfig() {
@@ -449,11 +452,25 @@
                     strokeColor: 'white'
                 };
             },
+            getHouseMarkerConfig() {
+                // Create a custom house shape using SVG path
+                const housePath = 'M12 2 L22 12 L20 12 L20 20 L16 20 L16 14 L8 14 L8 20 L4 20 L4 12 L2 12 Z';
+                return {
+                    path: housePath,
+                    scale: 0.8,
+                    fillColor: '#8B4513', // Brown color for house
+                    fillOpacity: 1,
+                    strokeWeight: 1,
+                    strokeColor: '#654321',
+                    anchor: new google.maps.Point(12, 20) // Anchor at bottom center
+                };
+            },
             async init() {
                 try {
                     await this.initializeMap();
                     await this.loadMarkerClusterer();
                     await this.loadData();
+                    await this.loadHousefrontData();
                     this.setupEventListeners();
                 } catch (error) {
                     console.error('Initialization error:', error);
@@ -505,6 +522,16 @@
                     this.updateMarkerVisibility();
                 } catch (error) {
                     console.error('Data loading error:', error);
+                }
+            },
+            async loadHousefrontData() {
+                try {
+                    const data = await d3.csv(AppConfig.HOUSEFRONT_CSV_URL);
+                    console.log('Housefront CSV data loaded:', data);
+                    this.data.housefrontData = data;
+                    this.createHousefrontMarkers(data);
+                } catch (error) {
+                    console.error('Housefront data loading error:', error);
                 }
             },
             extractUniqueGroups(data) {
@@ -610,6 +637,25 @@
                         this.data.allMarkers.push(marker);
                     });
             },
+            createHousefrontMarkers(data) {
+                this.data.housefrontMarkers = [];
+                data
+                    .filter(d => d.Coordinates && d.Coordinates.includes(','))
+                    .forEach(d => {
+                        console.log('Creating housefront marker:', d);
+                        const [lat, lng] = d.Coordinates.split(',').map(Number);
+                        const marker = new google.maps.Marker({
+                            position: { lat, lng },
+                            title: d.Text || d.Ref || 'House Location',
+                            icon: this.getHouseMarkerConfig()
+                        });
+                        marker.csvData = d;
+                        marker.isHouseMarker = true;
+                        this.setupHousefrontMarkerListeners(marker, lat, lng, d);
+                        this.data.housefrontMarkers.push(marker);
+                    });
+                this.updateMarkerVisibility();
+            },
             setupMarkerListeners(marker, lat, lng, data) {
                 marker.addListener('click', () => this.showStreetView(lat, lng, data));
                 const infoWindow = new google.maps.InfoWindow({
@@ -618,10 +664,28 @@
                 marker.addListener('mouseover', () => infoWindow.open(this.map, marker));
                 marker.addListener('mouseout', () => infoWindow.close());
             },
+            setupHousefrontMarkerListeners(marker, lat, lng, data) {
+                marker.addListener('click', () => this.showStreetView(lat, lng, data));
+                const infoWindow = new google.maps.InfoWindow({
+                    content: this.createHousefrontInfoContent(data)
+                });
+                marker.addListener('mouseover', () => infoWindow.open(this.map, marker));
+                marker.addListener('mouseout', () => infoWindow.close());
+            },
             createInfoContent(data) {
                 let content = '<div style="max-width: 200px;">';
                 if (data.Ref) content += `<strong>Ref:</strong> ${data.Ref}<br>`;
                 if (data[AppConfig.GROUP_COLUMN]) content += `<strong>Group:</strong> ${data[AppConfig.GROUP_COLUMN]}<br>`;
+                content += '</div>';
+                return content;
+            },
+            createHousefrontInfoContent(data) {
+                let content = '<div style="max-width: 200px;">';
+                if (data.Ref) content += `<strong>Ref:</strong> ${data.Ref}<br>`;
+                if (data.Text) content += `<strong>Name:</strong> ${data.Text}<br>`;
+                if (data.Biketype) content += `<strong>Bike Type:</strong> ${data.Biketype}<br>`;
+                if (data.Type) content += `<strong>Type:</strong> ${data.Type}<br>`;
+                content += '<strong>Housefront:</strong> Yes<br>';
                 content += '</div>';
                 return content;
             },
@@ -665,6 +729,11 @@
                         marker.setMap(this.map);
                     }
                 });
+
+                // Always show housefront markers (they don't participate in clustering)
+                this.data.housefrontMarkers.forEach(marker => {
+                    marker.setMap(this.map);
+                });
             },
             showStreetView(lat, lng, data) {
                 const position = { lat, lng };
@@ -702,9 +771,16 @@
                 });
             },
             updateInfoFields(data) {
-                document.getElementById('ref-value').textContent = data.Ref || '-';
-                document.getElementById('group-value').textContent = data[AppConfig.GROUP_COLUMN] || '-';
-                document.getElementById('text-value').textContent = data.Feedback || '-';
+                // Check if this is housefront data
+                if (data.Housefront === 'Yes') {
+                    document.getElementById('ref-value').textContent = data.Ref || '-';
+                    document.getElementById('group-value').textContent = 'Housefront Location';
+                    document.getElementById('text-value').textContent = `${data.Text || ''} - ${data.Biketype || ''} (Type: ${data.Type || '-'})`;
+                } else {
+                    document.getElementById('ref-value').textContent = data.Ref || '-';
+                    document.getElementById('group-value').textContent = data[AppConfig.GROUP_COLUMN] || '-';
+                    document.getElementById('text-value').textContent = data.Feedback || '-';
+                }
                 this.updateButton('pictures-button', data['URL to behind the "pictures" button']);
                 this.updateButton('feedback-button', data['URL to display behind the "feedback" button']);
             },
