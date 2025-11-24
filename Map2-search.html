@@ -615,12 +615,42 @@
                     console.error('Data loading error:', error);
                 }
             },
+
             async loadHousefrontData() {
                 try {
                     const data = await d3.csv(AppConfig.HOUSEFRONT_CSV_URL);
                     console.log('Housefront CSV data loaded:', data);
                     this.data.housefrontData = data;
                     this.createHousefrontMarkers(data);
+
+                    // --- URL SELECTION CODE ---
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const searchId = urlParams.get('id');
+
+                    if (searchId) {
+                        const targetMarker = this.data.allMarkers.find(m =>
+                            m.csvData && m.csvData.Ref && m.csvData.Ref == searchId
+                        );
+
+                        if (targetMarker) {
+                            console.log('Found marker from URL:', targetMarker);
+
+                            // Wait for setupSearchListeners to expose the function
+                            setTimeout(() => {
+                                if (MapApp.highlightMarker) {
+                                    MapApp.highlightMarker(targetMarker);
+
+                                    if (MapApp.map) {
+                                        MapApp.map.panTo(targetMarker.getPosition());
+                                        MapApp.map.setZoom(17);
+                                        //google.maps.event.trigger(targetMarker, 'click');
+                                    }
+                                }
+                            }, 1000);
+                        }
+                    }
+                    // --------------------------
+
                 } catch (error) {
                     console.error('Housefront data loading error:', error);
                 }
@@ -1049,6 +1079,10 @@
                 marker.setZIndex(99999); // Bring to front, above everything
                 MapApp.data.highlightedMarker = marker;
             }
+
+            // Expose highlightMarker to MapApp
+            MapApp.highlightMarker = highlightMarker;
+
 
             input.addEventListener('input', function () {
                 const value = input.value.trim().toLowerCase();
