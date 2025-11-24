@@ -507,24 +507,24 @@
         };
 
         function checkLogin() {
-            const username = prompt("Enter username:");
-            if (!username) return false;
-
             const password = prompt("Enter password:");
             if (!password) return false;
 
             const validCredentials = {
-                'DCCTeam': 'ebc60703e805611515a3ef3d6cc76c57', // MD5 of 'test'
-                'Bleeper': 'd21f33c518b5d3c736161ad30c5f1f62',  // MD5 of 'test1'
+                'DCCTeam': 'ebc60703e805611515a3ef3d6cc76c57',
+                'Bleeper': 'd21f33c518b5d3c736161ad30c5f1f62',
                 'admin': '098f6bcd4621d373cade4e832627b4f6'  // MD5 of 'test'
             };
 
             const hashedPassword = md5(password);
 
-            if (validCredentials[username] && validCredentials[username] === hashedPassword) {
+            // Check if the password matches any of the valid credentials
+            const isValid = Object.values(validCredentials).includes(hashedPassword);
+
+            if (isValid) {
                 return true;
             } else {
-                alert("Invalid username or password!");
+                alert("Invalid password!");
                 return false;
             }
         }
