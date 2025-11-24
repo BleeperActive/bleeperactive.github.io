@@ -506,6 +506,34 @@
             "Bleeper Locations Planning": { color: "#fcec03", sortOrder: 7 }
         };
 
+        function checkLogin() {
+            const username = prompt("Enter username:");
+            if (!username) return false;
+
+            const password = prompt("Enter password:");
+            if (!password) return false;
+
+            const validCredentials = {
+                'DCCTeam': 'ebc60703e805611515a3ef3d6cc76c57', // MD5 of 'test'
+                'Bleeper': 'd21f33c518b5d3c736161ad30c5f1f62',  // MD5 of 'test1'
+                'admin': '098f6bcd4621d373cade4e832627b4f6'  // MD5 of 'test'
+            };
+
+            const hashedPassword = md5(password);
+
+            if (validCredentials[username] && validCredentials[username] === hashedPassword) {
+                return true;
+            } else {
+                alert("Invalid username or password!");
+                return false;
+            }
+        }
+
+        if (!checkLogin()) {
+            document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
+            throw new Error("Access denied");
+        }
+
         const AppConfig = {
             CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTPqE_AH0J2pawMVjC7eJnkd7L6RhXlTSJ75EPSQyyrlH4lW3SsEGKtMDiiAzFAH3nEFZ-LfqG3lm3/pub?output=csv",
             HOUSEFRONT_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTCug3Ckya-3WVZ-PvVx9joPo_CGOdIBg2UZBx7FhCrgZhi2YFOtbbc3xtP9vS5esuf9S_iJVvJxOgD/pub?output=csv",
@@ -529,7 +557,7 @@
                 groupStates: {},
                 csvData: [],
                 housefrontData: [],
-                housefrontFilter: 'All',
+                housefrontFilter: 'None',
                 clusteringEnabled: true,
                 highlightedMarker: null
             },
