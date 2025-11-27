@@ -160,9 +160,6 @@
 
     <script>
         function checkLogin() {
-            const username = prompt("Enter username:");
-            if (!username) return false;
-
             const password = prompt("Enter password:");
             if (!password) return false;
 
@@ -174,10 +171,13 @@
 
             const hashedPassword = md5(password);
 
-            if (validCredentials[username] && validCredentials[username] === hashedPassword) {
+            // Check if the password matches any of the valid credentials
+            const isValid = Object.values(validCredentials).includes(hashedPassword);
+
+            if (isValid) {
                 return true;
             } else {
-                alert("Invalid username or password!");
+                alert("Invalid password!");
                 return false;
             }
         }
