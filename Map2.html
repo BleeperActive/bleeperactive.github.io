@@ -498,12 +498,13 @@
     <script>
         const filterGroupOptions = {
             "Awaiting MM review": { color: "#800080", sortOrder: 1 },
-            "MM feedback provided": { color: "#0000FF", sortOrder: 2 },
-            "Awaiting PE review": { color: "#000000", sortOrder: 3 },
-            "Denied": { color: "#FF0000", sortOrder: 4 },
-            "Approved": { color: "#FFA500", sortOrder: 5 },
-            "Installed": { color: "#008000", sortOrder: 6 },
-            "Bleeper Locations Planning": { color: "#fcec03", sortOrder: 7 }
+            "Denied": { color: "#FF0000", sortOrder: 2 },
+            "Approved - provisional": { color: "", sortOrder: 3 },
+            "Approved - final": { color: "#FFA500", sortOrder: 4 },
+            "Installed": { color: "#008000", sortOrder: 5 },
+            "Bleeper Locations Planning": { color: "#fcec03", sortOrder: 6 },
+            // "MM feedback provided": { color: "#0000FF", sortOrder: 2 },
+            // "Awaiting PE review": { color: "#000000", sortOrder: 3 },
         };
 
         function checkLogin() {
