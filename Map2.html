@@ -559,7 +559,7 @@
                 csvData: [],
                 housefrontData: [],
                 housefrontFilter: 'None',
-                clusteringEnabled: true,
+                clusteringEnabled: false,
                 highlightedMarker: null
             },
             getMarkerConfig() {
@@ -724,7 +724,7 @@
                 filtersEl.appendChild(this.createHousefrontFilter());
                 filtersEl.appendChild(document.createElement('hr'));
                 filtersEl.appendChild(
-                    this.createToggle('Enable Clustering', true, '', (state) => {
+                    this.createToggle('Enable Clustering', false, '', (state) => {
                         this.data.clusteringEnabled = state;
                         this.updateMarkerVisibility();
                     })
