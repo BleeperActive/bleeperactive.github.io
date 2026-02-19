@@ -109,7 +109,6 @@
             box-shadow: 0 0 1px #4CAF50;
         }
 
-        /* NEW STYLES FOR COLOR DOT */
         .toggle-name-wrap-small {
             display: inline-flex;
             align-items: center;
@@ -125,8 +124,8 @@
             flex: 0 0 auto;
         }
 
-        /* Housefront filter styles */
-        #housefront-filter {
+        #housefront-filter,
+        #activeuser-filter {
             margin-top: 10px;
             font-family: Arial, sans-serif;
             font-size: 13px;
@@ -134,12 +133,12 @@
             user-select: none;
         }
 
-        #housefront-filter label {
+        #housefront-filter label,
+        #activeuser-filter label {
             margin-right: 10px;
             cursor: pointer;
         }
 
-        /* Biketype filter styles */
         #biketype-filter {
             margin-top: 10px;
         }
@@ -170,8 +169,6 @@
             };
 
             const hashedPassword = md5(password);
-
-            // Check if the password matches any of the valid credentials
             const isValid = Object.values(validCredentials).includes(hashedPassword);
 
             if (isValid) {
@@ -187,7 +184,6 @@
             throw new Error("Access denied");
         }
 
-
         const filters = document.getElementById('filters');
 
         const appData = {
@@ -195,8 +191,9 @@
             availableTypes: [],
             typeStates: {},
             housefrontFilter: "all",
-            bikeTypeStates: {}, // to track toggle states of bike types
-            bikeTypesDistinct: [] // store unique bike types
+            activeUserFilter: "none",  // default: no green strokes
+            bikeTypeStates: {},
+            bikeTypesDistinct: []
         };
 
         const categoryColor = {
@@ -222,6 +219,14 @@
             style: 'mapbox://styles/patryk-wasik/cmd2x9ey300c301s9f48y1tzd',
         }));
 
+        function getStrokeColor(pinActiveUser) {
+            const filter = appData.activeUserFilter;
+            if (filter === "none") return "#FFFFFF";
+            if (filter === "all") return "#00C853";
+            if (pinActiveUser === filter) return "#00C853";
+            return "#FFFFFF";
+        }
+
         function updateMapData() {
             const filteredPins = appData.pins.filter(pin => {
                 const typeEnabled = appData.typeStates[pin.properties.type] === true;
@@ -239,12 +244,18 @@
                 return typeEnabled && housefrontEnabled && bikeTypeEnabled;
             });
 
-            const geojson = {
-                "type": "FeatureCollection",
-                "features": filteredPins
-            };
+            const features = filteredPins.map(pin => ({
+                ...pin,
+                properties: {
+                    ...pin.properties,
+                    strokeColor: getStrokeColor(pin.properties.activeUser)
+                }
+            }));
 
-            map.getSource('pins').setData(geojson);
+            map.getSource('pins').setData({
+                "type": "FeatureCollection",
+                "features": features
+            });
         }
 
         function createToggleDiv(name, onToggle, initialState = false, color = null) {
@@ -266,9 +277,7 @@
             slider.className = 'toggle-slider-small';
 
             input.addEventListener('change', function () {
-                if (onToggle) {
-                    onToggle(this.checked, name);
-                }
+                if (onToggle) onToggle(this.checked, name);
             });
 
             switchDiv.appendChild(input);
@@ -280,7 +289,6 @@
             const nameSpan = document.createElement('span');
             nameSpan.className = 'toggle-name-small';
             nameSpan.textContent = name;
-
             nameWrap.appendChild(nameSpan);
 
             if (color) {
@@ -298,8 +306,7 @@
         }
 
         function handleToggle(state, name) {
-            const typeKey = name.toLowerCase();
-            appData.typeStates[typeKey] = state;
+            appData.typeStates[name.toLowerCase()] = state;
             updateMapData();
         }
 
@@ -321,6 +328,34 @@
 
                 input.addEventListener('change', () => {
                     appData.housefrontFilter = value;
+                    updateMapData();
+                });
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(value.charAt(0).toUpperCase() + value.slice(1)));
+                container.appendChild(label);
+            });
+
+            return container;
+        }
+
+        function createActiveUserFilter() {
+            const container = document.createElement('div');
+            container.id = "activeuser-filter";
+
+            const title = document.createElement('div');
+            title.textContent = "Active User:";
+            container.appendChild(title);
+
+            ["all", "yes", "no", "none"].forEach(value => {
+                const label = document.createElement('label');
+                const input = document.createElement('input');
+                input.type = "radio";
+                input.name = "activeuser";
+                input.value = value;
+                if (value === "none") input.checked = true; // default: none
+
+                input.addEventListener('change', () => {
+                    appData.activeUserFilter = value;
                     updateMapData();
                 });
                 label.appendChild(input);
@@ -367,20 +402,13 @@
                 id: 'satellite-layer',
                 type: 'raster',
                 source: 'satellite-source',
-                layout: {
-                    visibility: 'none'
-                },
-                paint: {
-                    'raster-opacity': 0.8
-                }
+                layout: { visibility: 'none' },
+                paint: { 'raster-opacity': 0.8 }
             });
 
             map.addSource('pins', {
                 "type": "geojson",
-                "data": {
-                    "type": "FeatureCollection",
-                    "features": []
-                }
+                "data": { "type": "FeatureCollection", "features": [] }
             });
 
             map.addLayer({
@@ -391,7 +419,7 @@
                     "circle-radius": 16,
                     "circle-color": ['get', 'color'],
                     "circle-stroke-width": 3,
-                    "circle-stroke-color": "#FFFFFF"
+                    "circle-stroke-color": ['get', 'strokeColor']
                 }
             });
 
@@ -447,13 +475,11 @@
 
                         const type = d.Type.toLowerCase();
 
-                        // Split by newline or comma, trim and lowercase
                         let bikeTypesRaw = d.Biketype || "";
                         let bikeTypesArray = bikeTypesRaw.split(/\s*\n\s*|\s*,\s*/).map(bt => bt.toLowerCase().trim());
+                        bikeTypesArray.forEach(bt => { if (bt) bikeTypeSet.add(bt); });
 
-                        bikeTypesArray.forEach(bt => {
-                            if (bt) bikeTypeSet.add(bt);
-                        });
+                        const activeUserRaw = (d['Active User'] || "").toLowerCase().trim();
 
                         const pin = {
                             "type": "Feature",
@@ -463,14 +489,16 @@
                             },
                             "properties": {
                                 "title": d.Name,
-                                "description": `<h3>${d.Text}</h3>Housefront: ${d.Housefront || "N/A"}<br/>Bike Types: ${d.Biketype || "N/A"}`,
+                                "description": `<h3>${d.Text}</h3>Housefront: ${d.Housefront || "N/A"}<br/>Bike Types: ${d.Biketype || "N/A"}<br/>Active User: ${d['Active User'] || "N/A"}`,
                                 "icon": "monument",
                                 "type": type,
                                 "color": categoryColor[type] || "#000000",
+                                "strokeColor": "#FFFFFF",
                                 "ref": d.Ref ? `${d.Ref}` : "N/A",
                                 "priority": parseFloat(d.Ref) || 0,
                                 "housefront": d.Housefront ? d.Housefront.toLowerCase() : "no",
-                                "biketype": d.Biketype ? d.Biketype : ""
+                                "biketype": d.Biketype ? d.Biketype : "",
+                                "activeUser": activeUserRaw
                             }
                         };
                         appData.pins.push(pin);
@@ -478,30 +506,28 @@
                     });
 
                     appData.bikeTypesDistinct = Array.from(bikeTypeSet).sort();
-
                     appData.availableTypes = Array.from(new Set(appData.availableTypes)).sort();
+                    appData.availableTypes.forEach(type => { appData.typeStates[type] = true; });
 
-                    appData.availableTypes.forEach(type => {
-                        appData.typeStates[type] = true;
-                    });
-
-                    // Create toggles for types with color
+                    // Type toggles
                     appData.availableTypes.forEach(type => {
                         const displayName = type.charAt(0).toUpperCase() + type.slice(1);
                         const color = categoryColor[type] || "#000000";
-                        const toggle = createToggleDiv(displayName, handleToggle, true, color);
-                        filters.appendChild(toggle);
+                        filters.appendChild(createToggleDiv(displayName, handleToggle, true, color));
                     });
 
-                    // Insert Housefront filter section
+                    // Housefront filter
                     filters.appendChild(document.createElement('hr'));
                     filters.appendChild(createHousefrontFilter());
 
-                    // Insert BikeType filter section
+                    // Active User filter (right below Housefront, no hr between them)
+                    filters.appendChild(createActiveUserFilter());
+
+                    // BikeType filter
                     filters.appendChild(document.createElement('hr'));
                     filters.appendChild(createBikeTypeFilter());
 
-                    // Insert other toggles
+                    // Map control toggles
                     filters.appendChild(document.createElement('hr'));
                     filters.appendChild(createToggleDiv("SATELLITE", () => {
                         const visibility = map.getLayoutProperty('satellite-layer', 'visibility');

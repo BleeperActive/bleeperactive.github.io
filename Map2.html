@@ -559,6 +559,8 @@
                 csvData: [],
                 housefrontData: [],
                 housefrontFilter: 'None',
+                activeUserFilter: 'None',
+                activeUserRingMarkers: [],
                 clusteringEnabled: false,
                 highlightedMarker: null
             },
@@ -723,6 +725,8 @@
                 filtersEl.appendChild(document.createElement('hr'));
                 filtersEl.appendChild(this.createHousefrontFilter());
                 filtersEl.appendChild(document.createElement('hr'));
+                filtersEl.appendChild(this.createActiveUserFilter());
+                filtersEl.appendChild(document.createElement('hr'));
                 filtersEl.appendChild(
                     this.createToggle('Enable Clustering', false, '', (state) => {
                         this.data.clusteringEnabled = state;
@@ -761,6 +765,40 @@
 
                 label.append(colorCircle, nameSpan, switchDiv);
                 container.appendChild(label);
+                return container;
+            },
+            createActiveUserFilter() {
+                const container = document.createElement('div');
+                container.className = 'radio-filter';
+                const title = document.createElement('div');
+                title.className = 'radio-filter-title';
+                title.textContent = 'Active User';
+                container.appendChild(title);
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'radio-options';
+                ['All', 'Yes', 'No', 'None'].forEach(value => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'radio-option';
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = 'activeuser-filter';
+                    radio.value = value;
+                    radio.id = `activeuser-${value}`;
+                    radio.checked = value === this.data.activeUserFilter;
+                    const label = document.createElement('label');
+                    label.htmlFor = `activeuser-${value}`;
+                    label.textContent = value;
+                    radio.addEventListener('change', () => {
+                        if (radio.checked) {
+                            this.data.activeUserFilter = value;
+                            this.updateActiveUserRings();
+                        }
+                    });
+                    optionDiv.appendChild(radio);
+                    optionDiv.appendChild(label);
+                    optionsContainer.appendChild(optionDiv);
+                });
+                container.appendChild(optionsContainer);
                 return container;
             },
             createHousefrontFilter() {
@@ -847,6 +885,26 @@
                         marker.isHouseMarker = true;
                         this.setupHousefrontMarkerListeners(marker, lat, lng, d);
                         this.data.housefrontMarkers.push(marker);
+
+                        // Paired ring overlay — clickable:false so events pass to house marker
+                        const ringMarker = new google.maps.Marker({
+                            position: { lat, lng },
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 14,
+                                anchor: new google.maps.Point(0, 0.514),
+                                fillOpacity: 0,
+                                strokeWeight: 3,
+                                strokeColor: '#00C853',
+                                strokeOpacity: 0.85
+                            },
+                            map: null,
+                            zIndex: 999,
+                            clickable: false
+                        });
+                        ringMarker.mainMarker = marker;
+                        marker.ringMarker = ringMarker;
+                        this.data.activeUserRingMarkers.push(ringMarker);
                     });
                 this.updateMarkerVisibility();
             },
@@ -941,6 +999,44 @@
                     this.data.highlightedMarker.setMap(this.map);
                     this.data.highlightedMarker.setZIndex(99999);
                 }
+
+                this.updateActiveUserRings();
+            },
+            updateActiveUserRings() {
+                const filter = this.data.activeUserFilter;
+
+                this.data.activeUserRingMarkers.forEach(ringMarker => {
+                    const mainMarker = ringMarker.mainMarker;
+                    if (!mainMarker) return;
+
+                    if (filter === 'None' || mainMarker.getMap() === null) {
+                        ringMarker.setMap(null);
+                        return;
+                    }
+
+                    const val = (mainMarker.csvData['Active User'] || '').toLowerCase().trim();
+
+                    let show = false;
+                    if (filter === 'All') show = true;
+                    else if (filter === 'Yes') show = val === 'yes';
+                    else if (filter === 'No') show = val === 'no';
+
+                    if (!show) {
+                        ringMarker.setMap(null);
+                        return;
+                    }
+
+                    ringMarker.setIcon({
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 14,
+                        anchor: new google.maps.Point(0, 0.514),
+                        fillOpacity: 0,
+                        strokeWeight: 3,
+                        strokeColor: '#00C853',
+                        strokeOpacity: 0.85
+                    });
+                    ringMarker.setMap(this.map);
+                });
             },
             shouldShowHousefrontMarker(marker) {
                 const filter = this.data.housefrontFilter;
