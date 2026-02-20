@@ -191,7 +191,7 @@
             availableTypes: [],
             typeStates: {},
             housefrontFilter: "all",
-            activeUserFilter: "none",  // default: no green strokes
+            activeUserFilter: "all",
             bikeTypeStates: {},
             bikeTypesDistinct: []
         };
@@ -220,10 +220,9 @@
         }));
 
         function getStrokeColor(pinActiveUser) {
+            if (pinActiveUser !== "yes") return "#FFFFFF";
             const filter = appData.activeUserFilter;
-            if (filter === "none") return "#FFFFFF";
-            if (filter === "all") return "#00C853";
-            if (pinActiveUser === filter) return "#00C853";
+            if (filter === "all" || filter === "yes") return "#00C853";
             return "#FFFFFF";
         }
 
@@ -241,7 +240,10 @@
 
                 const bikeTypeEnabled = bikeTypesForPin.length === 0 || bikeTypesForPin.some(bt => appData.bikeTypeStates[bt] === true);
 
-                return typeEnabled && housefrontEnabled && bikeTypeEnabled;
+                const activeUserEnabled = appData.activeUserFilter === "all" ||
+                    pin.properties.activeUser === appData.activeUserFilter;
+
+                return typeEnabled && housefrontEnabled && bikeTypeEnabled && activeUserEnabled;
             });
 
             const features = filteredPins.map(pin => ({
@@ -346,13 +348,13 @@
             title.textContent = "Active User:";
             container.appendChild(title);
 
-            ["all", "yes", "no", "none"].forEach(value => {
+            ["all", "yes", "no"].forEach(value => {
                 const label = document.createElement('label');
                 const input = document.createElement('input');
                 input.type = "radio";
                 input.name = "activeuser";
                 input.value = value;
-                if (value === "none") input.checked = true; // default: none
+                if (value === "all") input.checked = true;
 
                 input.addEventListener('change', () => {
                     appData.activeUserFilter = value;
@@ -520,7 +522,7 @@
                     filters.appendChild(document.createElement('hr'));
                     filters.appendChild(createHousefrontFilter());
 
-                    // Active User filter (right below Housefront, no hr between them)
+                    // Active User filter
                     filters.appendChild(createActiveUserFilter());
 
                     // BikeType filter
