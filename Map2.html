@@ -539,7 +539,7 @@
             CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTPqE_AH0J2pawMVjC7eJnkd7L6RhXlTSJ75EPSQyyrlH4lW3SsEGKtMDiiAzFAH3nEFZ-LfqG3lm3/pub?output=csv",
             HOUSEFRONT_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTCug3Ckya-3WVZ-PvVx9joPo_CGOdIBg2UZBx7FhCrgZhi2YFOtbbc3xtP9vS5esuf9S_iJVvJxOgD/pub?output=csv",
             GROUP_COLUMN: 'group',
-            DEFAULT_CENTER: { lat: 53.350379, lng: -6.269649 },
+            DEFAULT_CENTER: { lat: 53.3511296, lng: -6.28588239999999 },
             CLUSTER_CONFIG: {
                 gridSize: 100,
                 maxZoom: 15
@@ -559,8 +559,7 @@
                 csvData: [],
                 housefrontData: [],
                 housefrontFilter: 'None',
-                activeUserFilter: 'None',
-                activeUserRingMarkers: [],
+                activeUserToggleEnabled: false,
                 clusteringEnabled: false,
                 highlightedMarker: null
             },
@@ -603,7 +602,7 @@
                 const { StreetViewPanorama, StreetViewService } = await google.maps.importLibrary("streetView");
                 this.map = new Map(document.getElementById('map'), {
                     center: AppConfig.DEFAULT_CENTER,
-                    zoom: 17,
+                    zoom: 20,
                     streetViewControl: false,
                     mapTypeControl: true,
                     mapTypeControlOptions: {
@@ -725,7 +724,12 @@
                 filtersEl.appendChild(document.createElement('hr'));
                 filtersEl.appendChild(this.createHousefrontFilter());
                 filtersEl.appendChild(document.createElement('hr'));
-                filtersEl.appendChild(this.createActiveUserFilter());
+                filtersEl.appendChild(
+                    this.createToggle('Active User', false, 'grey', (state) => {
+                        this.data.activeUserToggleEnabled = state;
+                        this.updateMarkerVisibility();
+                    })
+                );
                 filtersEl.appendChild(document.createElement('hr'));
                 filtersEl.appendChild(
                     this.createToggle('Enable Clustering', false, '', (state) => {
@@ -765,40 +769,6 @@
 
                 label.append(colorCircle, nameSpan, switchDiv);
                 container.appendChild(label);
-                return container;
-            },
-            createActiveUserFilter() {
-                const container = document.createElement('div');
-                container.className = 'radio-filter';
-                const title = document.createElement('div');
-                title.className = 'radio-filter-title';
-                title.textContent = 'Active User';
-                container.appendChild(title);
-                const optionsContainer = document.createElement('div');
-                optionsContainer.className = 'radio-options';
-                ['All', 'Yes', 'No', 'None'].forEach(value => {
-                    const optionDiv = document.createElement('div');
-                    optionDiv.className = 'radio-option';
-                    const radio = document.createElement('input');
-                    radio.type = 'radio';
-                    radio.name = 'activeuser-filter';
-                    radio.value = value;
-                    radio.id = `activeuser-${value}`;
-                    radio.checked = value === this.data.activeUserFilter;
-                    const label = document.createElement('label');
-                    label.htmlFor = `activeuser-${value}`;
-                    label.textContent = value;
-                    radio.addEventListener('change', () => {
-                        if (radio.checked) {
-                            this.data.activeUserFilter = value;
-                            this.updateActiveUserRings();
-                        }
-                    });
-                    optionDiv.appendChild(radio);
-                    optionDiv.appendChild(label);
-                    optionsContainer.appendChild(optionDiv);
-                });
-                container.appendChild(optionsContainer);
                 return container;
             },
             createHousefrontFilter() {
@@ -875,36 +845,15 @@
                     .filter(d => d.Coordinates && d.Coordinates.includes(','))
                     .forEach(d => {
                         const [lat, lng] = d.Coordinates.split(',').map(Number);
-                        const markerColor = (d.Housefront && d.Housefront.toLowerCase() === 'yes') ? '#008000' : '#8B4513';
                         const marker = new google.maps.Marker({
                             position: { lat, lng },
                             title: d.Text || d.Ref || 'House Location',
-                            icon: this.getHouseMarkerConfig(markerColor)
+                            icon: this.getHouseMarkerConfig('#8B4513')
                         });
                         marker.csvData = d;
                         marker.isHouseMarker = true;
                         this.setupHousefrontMarkerListeners(marker, lat, lng, d);
                         this.data.housefrontMarkers.push(marker);
-
-                        // Paired ring overlay — clickable:false so events pass to house marker
-                        const ringMarker = new google.maps.Marker({
-                            position: { lat, lng },
-                            icon: {
-                                path: google.maps.SymbolPath.CIRCLE,
-                                scale: 14,
-                                anchor: new google.maps.Point(0, 0.514),
-                                fillOpacity: 0,
-                                strokeWeight: 3,
-                                strokeColor: '#00C853',
-                                strokeOpacity: 0.85
-                            },
-                            map: null,
-                            zIndex: 999,
-                            clickable: false
-                        });
-                        ringMarker.mainMarker = marker;
-                        marker.ringMarker = ringMarker;
-                        this.data.activeUserRingMarkers.push(ringMarker);
                     });
                 this.updateMarkerVisibility();
             },
@@ -992,6 +941,24 @@
                 this.data.housefrontMarkers.forEach(marker => {
                     const shouldShow = this.shouldShowHousefrontMarker(marker);
                     marker.setMap(shouldShow ? this.map : null);
+
+                    const data = marker.csvData;
+                    const isHousefrontYes = data.Housefront && data.Housefront.toLowerCase().trim() === 'yes';
+                    const isActiveUserYes = data['Active User'] && data['Active User'].toLowerCase().trim() === 'yes';
+
+                    let markerColor;
+                    if (this.data.activeUserToggleEnabled) {
+                        if (isActiveUserYes) {
+                            markerColor = '#808080';
+                        } else if (isHousefrontYes) {
+                            markerColor = '#008000';
+                        } else {
+                            markerColor = '#FF0000';
+                        }
+                    } else {
+                        markerColor = isHousefrontYes ? '#008000' : '#8B4513';
+                    }
+                    marker.setIcon(this.getHouseMarkerConfig(markerColor));
                 });
 
                 // Ensure highlighted marker is visible and on top
@@ -999,44 +966,6 @@
                     this.data.highlightedMarker.setMap(this.map);
                     this.data.highlightedMarker.setZIndex(99999);
                 }
-
-                this.updateActiveUserRings();
-            },
-            updateActiveUserRings() {
-                const filter = this.data.activeUserFilter;
-
-                this.data.activeUserRingMarkers.forEach(ringMarker => {
-                    const mainMarker = ringMarker.mainMarker;
-                    if (!mainMarker) return;
-
-                    if (filter === 'None' || mainMarker.getMap() === null) {
-                        ringMarker.setMap(null);
-                        return;
-                    }
-
-                    const val = (mainMarker.csvData['Active User'] || '').toLowerCase().trim();
-
-                    let show = false;
-                    if (filter === 'All') show = true;
-                    else if (filter === 'Yes') show = val === 'yes';
-                    else if (filter === 'No') show = val === 'no';
-
-                    if (!show) {
-                        ringMarker.setMap(null);
-                        return;
-                    }
-
-                    ringMarker.setIcon({
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 14,
-                        anchor: new google.maps.Point(0, 0.514),
-                        fillOpacity: 0,
-                        strokeWeight: 3,
-                        strokeColor: '#00C853',
-                        strokeOpacity: 0.85
-                    });
-                    ringMarker.setMap(this.map);
-                });
             },
             shouldShowHousefrontMarker(marker) {
                 const filter = this.data.housefrontFilter;
