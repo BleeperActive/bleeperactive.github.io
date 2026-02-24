@@ -745,9 +745,6 @@
                 const label = document.createElement('label');
                 label.className = 'toggle-label';
 
-                const colorCircle = document.createElement('span');
-                colorCircle.className = 'toggle-color-circle';
-                colorCircle.style.backgroundColor = color;
 
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'toggle-name';
@@ -768,7 +765,7 @@
                 slider.className = 'toggle-slider';
                 switchDiv.append(input, slider);
 
-                label.append(colorCircle, nameSpan, switchDiv);
+                label.append(nameSpan, switchDiv);
                 container.appendChild(label);
                 return container;
             },
