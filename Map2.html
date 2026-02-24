@@ -726,7 +726,7 @@
                 filtersEl.appendChild(this.createHousefrontFilter());
                 filtersEl.appendChild(document.createElement('hr'));
                 filtersEl.appendChild(
-                    this.createToggle('Active User', false, 'grey', (state) => {
+                    this.createToggle('Active User', false, '', (state) => {
                         this.data.activeUserToggleEnabled = state;
                         this.updateMarkerVisibility();
                     })
@@ -745,6 +745,9 @@
                 const label = document.createElement('label');
                 label.className = 'toggle-label';
 
+                const colorCircle = document.createElement('span');
+                colorCircle.className = 'toggle-color-circle';
+                colorCircle.style.backgroundColor = color;
 
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'toggle-name';
@@ -765,7 +768,7 @@
                 slider.className = 'toggle-slider';
                 switchDiv.append(input, slider);
 
-                label.append(nameSpan, switchDiv);
+                label.append(colorCircle, nameSpan, switchDiv);
                 container.appendChild(label);
                 return container;
             },
