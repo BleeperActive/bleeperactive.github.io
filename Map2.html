@@ -573,7 +573,8 @@
                     strokeColor: 'white'
                 };
             },
-            getHouseMarkerConfig(fillColor = '#8B4513') {
+            getHouseMarkerConfig(fillColor = '#ff0000') {
+                // getHouseMarkerConfig(fillColor = '#8B4513') {
                 const housePath = 'M12 2 L22 12 L20 12 L20 20 L16 20 L16 14 L8 14 L8 20 L4 20 L4 12 L2 12 Z';
                 return {
                     path: housePath,
@@ -848,7 +849,7 @@
                         const marker = new google.maps.Marker({
                             position: { lat, lng },
                             title: d.Text || d.Ref || 'House Location',
-                            icon: this.getHouseMarkerConfig('#8B4513')
+                            icon: this.getHouseMarkerConfig('#ff0000')
                         });
                         marker.csvData = d;
                         marker.isHouseMarker = true;
@@ -956,7 +957,7 @@
                             markerColor = '#FF0000';
                         }
                     } else {
-                        markerColor = isHousefrontYes ? '#008000' : '#8B4513';
+                        markerColor = isHousefrontYes ? '#008000' : '#ff0000';
                     }
                     marker.setIcon(this.getHouseMarkerConfig(markerColor));
                 });
