@@ -501,6 +501,7 @@
             "Denied": { color: "#FF0000", sortOrder: 2 },
             "Approved - provisional": { color: "#0000ff", sortOrder: 3 },
             "Approved - final": { color: "#FFA500", sortOrder: 4 },
+            "Install unsuccessful": { color: "#000000", sortOrder: 4.5 },
             "Installed": { color: "#008000", sortOrder: 5 },
             "Bleeper Locations Planning": { color: "#fcec03", sortOrder: 6 },
             // "MM feedback provided": { color: "#0000FF", sortOrder: 2 },
@@ -709,6 +710,7 @@
 
                 this.data.availableGroups
                     .sort((a, b) => {
+                        console.log('a.group', a.group);
                         const optionA = filterGroupOptions[a.group];
                         const optionB = filterGroupOptions[b.group];
                         const orderA = optionA ? optionA.sortOrder : 999;
