@@ -254,10 +254,9 @@
         }
       }));
 
-      map.getSource('pins').setData({
-        "type": "FeatureCollection",
-        "features": features
-      });
+      const geojson = { "type": "FeatureCollection", "features": features };
+      map.getSource('pins').setData(geojson);
+      map.getSource('pins-clustered').setData(geojson);
     }
 
     function createToggleDiv(name, onToggle, initialState = false, color = null) {
@@ -418,7 +417,7 @@
         "type": "circle",
         "source": "pins",
         "paint": {
-          "circle-radius": 10,
+          "circle-radius": 11,
           "circle-color": ['get', 'color'],
           "circle-stroke-width": 2,
           "circle-stroke-color": ['get', 'strokeColor']
@@ -445,27 +444,118 @@
         }
       });
 
+      map.addSource('pins-clustered', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50
+      });
+
+      map.addLayer({
+        id: 'clusters',
+        type: 'circle',
+        source: 'pins-clustered',
+        filter: ['has', 'point_count'],
+        layout: { visibility: 'none' },
+        paint: {
+          'circle-color': ['step', ['get', 'point_count'], '#51bbd6', 10, '#f1a741', 30, '#f28cb1'],
+          'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 30, 40],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+
+      map.addLayer({
+        id: 'cluster-count',
+        type: 'symbol',
+        source: 'pins-clustered',
+        filter: ['has', 'point_count'],
+        layout: {
+          visibility: 'none',
+          'text-field': ['get', 'point_count_abbreviated'],
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': 13,
+          'text-allow-overlap': true,
+          'text-ignore-placement': true
+        },
+        paint: { 'text-color': '#ffffff' }
+      });
+
+      map.addLayer({
+        id: 'unclustered-point',
+        type: 'circle',
+        source: 'pins-clustered',
+        filter: ['!', ['has', 'point_count']],
+        layout: { visibility: 'none' },
+        paint: {
+          'circle-radius': 11,
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': ['get', 'strokeColor']
+        }
+      });
+
+      map.addLayer({
+        id: 'unclustered-labels',
+        type: 'symbol',
+        source: 'pins-clustered',
+        filter: ['!', ['has', 'point_count']],
+        layout: {
+          visibility: 'none',
+          'text-field': ['get', 'ref'],
+          'icon-text-fit': 'both',
+          'icon-image': 'popup',
+          'icon-allow-overlap': false,
+          'text-allow-overlap': false,
+          'text-ignore-placement': false,
+          'icon-ignore-placement': false,
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': 12,
+          'text-color': '#000000',
+          'text-offset': [0, 0]
+        }
+      });
+
       map.on('click', 'pins', (e) => {
         const coordinates = e.features[0].geometry.coordinates.slice();
         const description = e.features[0].properties.description;
-
         while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
           coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
         }
-
         new mapboxgl.Popup({ closeOnClick: true, offset: 5 })
           .setLngLat(coordinates)
           .setHTML(description)
           .addTo(map);
       });
 
-      map.on('mouseenter', 'pins', () => {
-        map.getCanvas().style.cursor = 'pointer';
+      map.on('click', 'unclustered-point', (e) => {
+        const coordinates = e.features[0].geometry.coordinates.slice();
+        const description = e.features[0].properties.description;
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+        new mapboxgl.Popup({ closeOnClick: true, offset: 5 })
+          .setLngLat(coordinates)
+          .setHTML(description)
+          .addTo(map);
       });
 
-      map.on('mouseleave', 'pins', () => {
-        map.getCanvas().style.cursor = '';
+      map.on('click', 'clusters', (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+        const clusterId = features[0].properties.cluster_id;
+        map.getSource('pins-clustered').getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err) return;
+          map.easeTo({ center: features[0].geometry.coordinates, zoom });
+        });
       });
+
+      map.on('mouseenter', 'pins', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'pins', () => { map.getCanvas().style.cursor = ''; });
+      map.on('mouseenter', 'unclustered-point', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'unclustered-point', () => { map.getCanvas().style.cursor = ''; });
+      map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
 
       d3.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTCug3Ckya-3WVZ-PvVx9joPo_CGOdIBg2UZBx7FhCrgZhi2YFOtbbc3xtP9vS5esuf9S_iJVvJxOgD/pub?output=csv")
         .then(function (data) {
@@ -544,6 +634,17 @@
           filters.appendChild(createToggleDiv("ALLOW OVERLAP", (state) => {
             map.setLayoutProperty('price-labels', 'text-allow-overlap', state);
             map.setLayoutProperty('price-labels', 'icon-allow-overlap', state);
+          }, false));
+
+          filters.appendChild(createToggleDiv("ENABLE CLUSTERING", (state) => {
+            const clusterVis = state ? 'visible' : 'none';
+            const pinsVis = state ? 'none' : 'visible';
+            map.setLayoutProperty('clusters', 'visibility', clusterVis);
+            map.setLayoutProperty('cluster-count', 'visibility', clusterVis);
+            map.setLayoutProperty('unclustered-point', 'visibility', clusterVis);
+            map.setLayoutProperty('unclustered-labels', 'visibility', clusterVis);
+            map.setLayoutProperty('pins', 'visibility', pinsVis);
+            map.setLayoutProperty('price-labels', 'visibility', pinsVis);
           }, false));
 
           updateMapData();
