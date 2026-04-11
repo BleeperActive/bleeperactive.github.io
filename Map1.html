@@ -179,10 +179,10 @@
       }
     }
 
-    // if (!checkLogin()) {
-    //   document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
-    //   throw new Error("Access denied");
-    // }
+    if (!checkLogin()) {
+      document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
+      throw new Error("Access denied");
+    }
 
     const filters = document.getElementById('filters');
 
