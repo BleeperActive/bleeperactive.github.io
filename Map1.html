@@ -2,557 +2,557 @@
 <html>
 
 <head>
-    <meta charset="utf-8" />
-    <title>map</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <link href="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.css" rel="stylesheet" />
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.js"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/js-md5@0.7.3/src/md5.min.js"></script>
+  <meta charset="utf-8" />
+  <title>map</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/js-md5@0.7.3/src/md5.min.js"></script>
 
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-        }
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
 
-        #map {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 100%;
-        }
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
 
-        #filters {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 4px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-            padding: 10px;
-            font-family: Arial, sans-serif;
-            z-index: 1;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
+    #filters {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      padding: 10px;
+      font-family: Arial, sans-serif;
+      z-index: 1;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
 
-        .toggle-container-small {
-            font-family: Arial, sans-serif;
-        }
+    .toggle-container-small {
+      font-family: Arial, sans-serif;
+    }
 
-        .toggle-label-small {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            user-select: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            transition: background-color 0.2s ease;
-        }
+    .toggle-label-small {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+    }
 
-        .toggle-name-small {
-            font-size: 13px;
-            font-weight: 500;
-            color: #333;
-        }
+    .toggle-name-small {
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+    }
 
-        .toggle-switch-small {
-            position: relative;
-            width: 32px;
-            height: 18px;
-            margin-right: 8px;
-        }
+    .toggle-switch-small {
+      position: relative;
+      width: 32px;
+      height: 18px;
+      margin-right: 8px;
+    }
 
-        .toggle-input-small {
-            opacity: 0;
-            width: 0;
-            height: 0;
-            position: absolute;
-        }
+    .toggle-input-small {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
 
-        .toggle-slider-small {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: 0.2s;
-            border-radius: 18px;
-        }
+    .toggle-slider-small {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.2s;
+      border-radius: 18px;
+    }
 
-        .toggle-slider-small:before {
-            position: absolute;
-            content: "";
-            height: 14px;
-            width: 14px;
-            left: 2px;
-            bottom: 2px;
-            background-color: white;
-            transition: 0.2s;
-            border-radius: 50%;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-        }
+    .toggle-slider-small:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: 0.2s;
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
 
-        .toggle-input-small:checked+.toggle-slider-small {
-            background-color: #4CAF50;
-        }
+    .toggle-input-small:checked+.toggle-slider-small {
+      background-color: #4CAF50;
+    }
 
-        .toggle-input-small:checked+.toggle-slider-small:before {
-            transform: translateX(14px);
-        }
+    .toggle-input-small:checked+.toggle-slider-small:before {
+      transform: translateX(14px);
+    }
 
-        .toggle-input-small:focus+.toggle-slider-small {
-            box-shadow: 0 0 1px #4CAF50;
-        }
+    .toggle-input-small:focus+.toggle-slider-small {
+      box-shadow: 0 0 1px #4CAF50;
+    }
 
-        .toggle-name-wrap-small {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
+    .toggle-name-wrap-small {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-        .toggle-color-dot {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            border: 1px solid #999;
-            flex: 0 0 auto;
-        }
+    .toggle-color-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1px solid #999;
+      flex: 0 0 auto;
+    }
 
-        #housefront-filter,
-        #activeuser-filter {
-            margin-top: 10px;
-            font-family: Arial, sans-serif;
-            font-size: 13px;
-            color: #333;
-            user-select: none;
-        }
+    #housefront-filter,
+    #activeuser-filter {
+      margin-top: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      color: #333;
+      user-select: none;
+    }
 
-        #housefront-filter label,
-        #activeuser-filter label {
-            margin-right: 10px;
-            cursor: pointer;
-        }
+    #housefront-filter label,
+    #activeuser-filter label {
+      margin-right: 10px;
+      cursor: pointer;
+    }
 
-        #biketype-filter {
-            margin-top: 10px;
-        }
+    #biketype-filter {
+      margin-top: 10px;
+    }
 
-        #biketype-filter>div {
-            font-family: Arial, sans-serif;
-            font-size: 13px;
-            color: #333;
-            margin-bottom: 4px;
-            user-select: none;
-        }
-    </style>
+    #biketype-filter>div {
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      color: #333;
+      margin-bottom: 4px;
+      user-select: none;
+    }
+  </style>
 </head>
 
 <body>
-    <div id="map"></div>
-    <div id="filters"></div>
+  <div id="map"></div>
+  <div id="filters"></div>
 
-    <script>
-        function checkLogin() {
-            const password = prompt("Enter password:");
-            if (!password) return false;
+  <script>
+    function checkLogin() {
+      const password = prompt("Enter password:");
+      if (!password) return false;
 
-            const validCredentials = {
-                'DCCTeam': 'ebc60703e805611515a3ef3d6cc76c57',
-                'Bleeper': 'd21f33c518b5d3c736161ad30c5f1f62',
-                'admin': '098f6bcd4621d373cade4e832627b4f6'
-            };
+      const validCredentials = {
+        'DCCTeam': 'ebc60703e805611515a3ef3d6cc76c57',
+        'Bleeper': 'd21f33c518b5d3c736161ad30c5f1f62',
+        'admin': '098f6bcd4621d373cade4e832627b4f6'
+      };
 
-            const hashedPassword = md5(password);
-            const isValid = Object.values(validCredentials).includes(hashedPassword);
+      const hashedPassword = md5(password);
+      const isValid = Object.values(validCredentials).includes(hashedPassword);
 
-            if (isValid) {
-                return true;
-            } else {
-                alert("Invalid password!");
-                return false;
-            }
+      if (isValid) {
+        return true;
+      } else {
+        alert("Invalid password!");
+        return false;
+      }
+    }
+
+    // if (!checkLogin()) {
+    //   document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
+    //   throw new Error("Access denied");
+    // }
+
+    const filters = document.getElementById('filters');
+
+    const appData = {
+      pins: [],
+      availableTypes: [],
+      typeStates: {},
+      housefrontFilter: "all",
+      activeUserFilter: "all",
+      bikeTypeStates: {},
+      bikeTypesDistinct: []
+    };
+
+    const categoryColor = {
+      "1": "#1f77b4",
+      "2": "#ff7f0e",
+      "3": "#2ca02c",
+      "4": "#d62728",
+      "5": "#9467bd",
+      "6": "#8c564b",
+      "other 3": "#e377c2",
+      "other 4": "#7f7f7f",
+      "other 5": "#bcbd22",
+      "other 6": "#17becf",
+      "other 7": "#aec7e8",
+      "other 8": "#ffbb78"
+    };
+
+    mapboxgl.accessToken = 'pk.eyJ1IjoicGF0cnlrLXdhc2lrIiwiYSI6ImNsenYybWswODAycXQyaXMybjE5djhvM2kifQ.79z21hharyuCVPDefwAimA';
+    const map = (window.map = new mapboxgl.Map({
+      container: 'map',
+      center: [-6.29059, 53.3695],
+      zoom: 11.81,
+      style: 'mapbox://styles/patryk-wasik/cmd2x9ey300c301s9f48y1tzd',
+    }));
+
+    function getStrokeColor(pinActiveUser) {
+      if (pinActiveUser !== "yes") return "#FFFFFF";
+      const filter = appData.activeUserFilter;
+      if (filter === "all" || filter === "yes") return "#00C853";
+      return "#FFFFFF";
+    }
+
+    function updateMapData() {
+      const filteredPins = appData.pins.filter(pin => {
+        const typeEnabled = appData.typeStates[pin.properties.type] === true;
+
+        const housefrontEnabled = appData.housefrontFilter === "all" ||
+          (pin.properties.housefront && pin.properties.housefront.toLowerCase() === appData.housefrontFilter);
+
+        let bikeTypesForPin = [];
+        if (pin.properties.biketype) {
+          bikeTypesForPin = pin.properties.biketype.split(/\s*\n\s*|\s*,\s*/).map(t => t.toLowerCase());
         }
 
-        if (!checkLogin()) {
-            document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
-            throw new Error("Access denied");
+        const bikeTypeEnabled = bikeTypesForPin.length === 0 || bikeTypesForPin.some(bt => appData.bikeTypeStates[bt] === true);
+
+        const activeUserEnabled = appData.activeUserFilter === "all" ||
+          pin.properties.activeUser === appData.activeUserFilter;
+
+        return typeEnabled && housefrontEnabled && bikeTypeEnabled && activeUserEnabled;
+      });
+
+      const features = filteredPins.map(pin => ({
+        ...pin,
+        properties: {
+          ...pin.properties,
+          strokeColor: getStrokeColor(pin.properties.activeUser)
         }
-
-        const filters = document.getElementById('filters');
-
-        const appData = {
-            pins: [],
-            availableTypes: [],
-            typeStates: {},
-            housefrontFilter: "all",
-            activeUserFilter: "all",
-            bikeTypeStates: {},
-            bikeTypesDistinct: []
-        };
-
-        const categoryColor = {
-            "1": "#1f77b4",
-            "2": "#ff7f0e",
-            "3": "#2ca02c",
-            "4": "#d62728",
-            "5": "#9467bd",
-            "6": "#8c564b",
-            "other 3": "#e377c2",
-            "other 4": "#7f7f7f",
-            "other 5": "#bcbd22",
-            "other 6": "#17becf",
-            "other 7": "#aec7e8",
-            "other 8": "#ffbb78"
-        };
-
-        mapboxgl.accessToken = 'pk.eyJ1IjoicGF0cnlrLXdhc2lrIiwiYSI6ImNsenYybWswODAycXQyaXMybjE5djhvM2kifQ.79z21hharyuCVPDefwAimA';
-        const map = (window.map = new mapboxgl.Map({
-            container: 'map',
-            center: [-6.29059, 53.3695],
-            zoom: 11.81,
-            style: 'mapbox://styles/patryk-wasik/cmd2x9ey300c301s9f48y1tzd',
-        }));
-
-        function getStrokeColor(pinActiveUser) {
-            if (pinActiveUser !== "yes") return "#FFFFFF";
-            const filter = appData.activeUserFilter;
-            if (filter === "all" || filter === "yes") return "#00C853";
-            return "#FFFFFF";
-        }
-
-        function updateMapData() {
-            const filteredPins = appData.pins.filter(pin => {
-                const typeEnabled = appData.typeStates[pin.properties.type] === true;
-
-                const housefrontEnabled = appData.housefrontFilter === "all" ||
-                    (pin.properties.housefront && pin.properties.housefront.toLowerCase() === appData.housefrontFilter);
-
-                let bikeTypesForPin = [];
-                if (pin.properties.biketype) {
-                    bikeTypesForPin = pin.properties.biketype.split(/\s*\n\s*|\s*,\s*/).map(t => t.toLowerCase());
-                }
-
-                const bikeTypeEnabled = bikeTypesForPin.length === 0 || bikeTypesForPin.some(bt => appData.bikeTypeStates[bt] === true);
-
-                const activeUserEnabled = appData.activeUserFilter === "all" ||
-                    pin.properties.activeUser === appData.activeUserFilter;
-
-                return typeEnabled && housefrontEnabled && bikeTypeEnabled && activeUserEnabled;
-            });
-
-            const features = filteredPins.map(pin => ({
-                ...pin,
-                properties: {
-                    ...pin.properties,
-                    strokeColor: getStrokeColor(pin.properties.activeUser)
-                }
-            }));
-
-            map.getSource('pins').setData({
-                "type": "FeatureCollection",
-                "features": features
-            });
-        }
-
-        function createToggleDiv(name, onToggle, initialState = false, color = null) {
-            const container = document.createElement('div');
-            container.className = 'toggle-container-small';
-
-            const label = document.createElement('label');
-            label.className = 'toggle-label-small';
-
-            const switchDiv = document.createElement('div');
-            switchDiv.className = 'toggle-switch-small';
-
-            const input = document.createElement('input');
-            input.type = 'checkbox';
-            input.checked = initialState;
-            input.className = 'toggle-input-small';
-
-            const slider = document.createElement('span');
-            slider.className = 'toggle-slider-small';
-
-            input.addEventListener('change', function () {
-                if (onToggle) onToggle(this.checked, name);
-            });
-
-            switchDiv.appendChild(input);
-            switchDiv.appendChild(slider);
-
-            const nameWrap = document.createElement('span');
-            nameWrap.className = 'toggle-name-wrap-small';
-
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'toggle-name-small';
-            nameSpan.textContent = name;
-            nameWrap.appendChild(nameSpan);
-
-            if (color) {
-                const colorDot = document.createElement('span');
-                colorDot.className = 'toggle-color-dot';
-                colorDot.style.backgroundColor = color;
-                nameWrap.appendChild(colorDot);
-            }
-
-            label.appendChild(switchDiv);
-            label.appendChild(nameWrap);
-            container.appendChild(label);
-
-            return container;
-        }
-
-        function handleToggle(state, name) {
-            appData.typeStates[name.toLowerCase()] = state;
-            updateMapData();
-        }
-
-        function createHousefrontFilter() {
-            const container = document.createElement('div');
-            container.id = "housefront-filter";
-
-            const title = document.createElement('div');
-            title.textContent = "Housefront:";
-            container.appendChild(title);
-
-            ["all", "yes", "no"].forEach(value => {
-                const label = document.createElement('label');
-                const input = document.createElement('input');
-                input.type = "radio";
-                input.name = "housefront";
-                input.value = value;
-                if (value === "all") input.checked = true;
-
-                input.addEventListener('change', () => {
-                    appData.housefrontFilter = value;
-                    updateMapData();
-                });
-                label.appendChild(input);
-                label.appendChild(document.createTextNode(value.charAt(0).toUpperCase() + value.slice(1)));
-                container.appendChild(label);
-            });
-
-            return container;
-        }
-
-        function createActiveUserFilter() {
-            const container = document.createElement('div');
-            container.id = "activeuser-filter";
-
-            const title = document.createElement('div');
-            title.textContent = "Active User:";
-            container.appendChild(title);
-
-            ["all", "yes", "no"].forEach(value => {
-                const label = document.createElement('label');
-                const input = document.createElement('input');
-                input.type = "radio";
-                input.name = "activeuser";
-                input.value = value;
-                if (value === "all") input.checked = true;
-
-                input.addEventListener('change', () => {
-                    appData.activeUserFilter = value;
-                    updateMapData();
-                });
-                label.appendChild(input);
-                label.appendChild(document.createTextNode(value.charAt(0).toUpperCase() + value.slice(1)));
-                container.appendChild(label);
-            });
-
-            return container;
-        }
-
-        function createBikeTypeFilter() {
-            const container = document.createElement('div');
-            container.id = "biketype-filter";
-
-            const title = document.createElement('div');
-            title.textContent = "Bike Types:";
-            container.appendChild(title);
-
-            appData.bikeTypesDistinct.forEach(bikeType => {
-                const toggle = createToggleDiv(
-                    bikeType.charAt(0).toUpperCase() + bikeType.slice(1),
-                    (state) => {
-                        appData.bikeTypeStates[bikeType] = state;
-                        updateMapData();
-                    },
-                    true,
-                    null
-                );
-                container.appendChild(toggle);
-                appData.bikeTypeStates[bikeType] = true;
-            });
-
-            return container;
-        }
-
-        map.on('style.load', () => {
-            map.addSource('satellite-source', {
-                type: 'raster',
-                url: 'mapbox://mapbox.satellite',
-                tileSize: 256
-            });
-
-            map.addLayer({
-                id: 'satellite-layer',
-                type: 'raster',
-                source: 'satellite-source',
-                layout: { visibility: 'none' },
-                paint: { 'raster-opacity': 0.8 }
-            });
-
-            map.addSource('pins', {
-                "type": "geojson",
-                "data": { "type": "FeatureCollection", "features": [] }
-            });
-
-            map.addLayer({
-                "id": "pins",
-                "type": "circle",
-                "source": "pins",
-                "paint": {
-                    "circle-radius": 16,
-                    "circle-color": ['get', 'color'],
-                    "circle-stroke-width": 3,
-                    "circle-stroke-color": ['get', 'strokeColor']
-                }
-            });
-
-            map.addLayer({
-                'id': 'price-labels',
-                'type': 'symbol',
-                'source': 'pins',
-                'layout': {
-                    'visibility': 'visible',
-                    'text-field': ['get', 'ref'],
-                    'icon-text-fit': 'both',
-                    'icon-image': 'popup',
-                    'icon-allow-overlap': false,
-                    'text-allow-overlap': false,
-                    'text-ignore-placement': false,
-                    'icon-ignore-placement': false,
-                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                    'text-size': 12,
-                    'text-color': '#000000',
-                    'text-offset': [0, 0],
-                }
-            });
-
-            map.on('click', 'pins', (e) => {
-                const coordinates = e.features[0].geometry.coordinates.slice();
-                const description = e.features[0].properties.description;
-
-                while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
-                    coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
-                }
-
-                new mapboxgl.Popup({ closeOnClick: true, offset: 5 })
-                    .setLngLat(coordinates)
-                    .setHTML(description)
-                    .addTo(map);
-            });
-
-            map.on('mouseenter', 'pins', () => {
-                map.getCanvas().style.cursor = 'pointer';
-            });
-
-            map.on('mouseleave', 'pins', () => {
-                map.getCanvas().style.cursor = '';
-            });
-
-            d3.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTCug3Ckya-3WVZ-PvVx9joPo_CGOdIBg2UZBx7FhCrgZhi2YFOtbbc3xtP9vS5esuf9S_iJVvJxOgD/pub?output=csv")
-                .then(function (data) {
-                    const bikeTypeSet = new Set();
-
-                    data.forEach(d => {
-                        const [lat, lng] = d.Coordinates.split(',').map(Number);
-                        if (isNaN(lat) || isNaN(lng)) return;
-
-                        const type = d.Type.toLowerCase();
-
-                        let bikeTypesRaw = d.Biketype || "";
-                        let bikeTypesArray = bikeTypesRaw.split(/\s*\n\s*|\s*,\s*/).map(bt => bt.toLowerCase().trim());
-                        bikeTypesArray.forEach(bt => { if (bt) bikeTypeSet.add(bt); });
-
-                        const activeUserRaw = (d['Active User'] || "").toLowerCase().trim();
-
-                        const pin = {
-                            "type": "Feature",
-                            "geometry": {
-                                "type": "Point",
-                                "coordinates": [lng, lat]
-                            },
-                            "properties": {
-                                "title": d.Name,
-                                "description": `<h3>${d.Text}</h3>Housefront: ${d.Housefront || "N/A"}<br/>Bike Types: ${d.Biketype || "N/A"}<br/>Active User: ${d['Active User'] || "N/A"}`,
-                                "icon": "monument",
-                                "type": type,
-                                "color": categoryColor[type] || "#000000",
-                                "strokeColor": "#FFFFFF",
-                                "ref": d.Ref ? `${d.Ref}` : "N/A",
-                                "priority": parseFloat(d.Ref) || 0,
-                                "housefront": d.Housefront ? d.Housefront.toLowerCase() : "no",
-                                "biketype": d.Biketype ? d.Biketype : "",
-                                "activeUser": activeUserRaw
-                            }
-                        };
-                        appData.pins.push(pin);
-                        appData.availableTypes.push(type);
-                    });
-
-                    appData.bikeTypesDistinct = Array.from(bikeTypeSet).sort();
-                    appData.availableTypes = Array.from(new Set(appData.availableTypes)).sort();
-                    appData.availableTypes.forEach(type => { appData.typeStates[type] = true; });
-
-                    // Type toggles
-                    appData.availableTypes.forEach(type => {
-                        const displayName = type.charAt(0).toUpperCase() + type.slice(1);
-                        const color = categoryColor[type] || "#000000";
-                        filters.appendChild(createToggleDiv(displayName, handleToggle, true, color));
-                    });
-
-                    // Housefront filter
-                    filters.appendChild(document.createElement('hr'));
-                    filters.appendChild(createHousefrontFilter());
-
-                    // Active User filter
-                    filters.appendChild(createActiveUserFilter());
-
-                    // BikeType filter
-                    filters.appendChild(document.createElement('hr'));
-                    filters.appendChild(createBikeTypeFilter());
-
-                    // Map control toggles
-                    filters.appendChild(document.createElement('hr'));
-                    filters.appendChild(createToggleDiv("SATELLITE", () => {
-                        const visibility = map.getLayoutProperty('satellite-layer', 'visibility');
-                        map.setLayoutProperty('satellite-layer', 'visibility', visibility === 'visible' ? 'none' : 'visible');
-                    }, false));
-
-                    filters.appendChild(createToggleDiv("PRIORITY", () => {
-                        const visibility = map.getLayoutProperty('price-labels', 'visibility');
-                        map.setLayoutProperty('price-labels', 'visibility', visibility === 'visible' ? 'none' : 'visible');
-                    }, true));
-
-                    filters.appendChild(createToggleDiv("ALLOW OVERLAP", (state) => {
-                        map.setLayoutProperty('price-labels', 'text-allow-overlap', state);
-                        map.setLayoutProperty('price-labels', 'icon-allow-overlap', state);
-                    }, false));
-
-                    updateMapData();
-                })
-                .catch(function (error) {
-                    console.error('Error loading or parsing data:', error);
-                });
+      }));
+
+      map.getSource('pins').setData({
+        "type": "FeatureCollection",
+        "features": features
+      });
+    }
+
+    function createToggleDiv(name, onToggle, initialState = false, color = null) {
+      const container = document.createElement('div');
+      container.className = 'toggle-container-small';
+
+      const label = document.createElement('label');
+      label.className = 'toggle-label-small';
+
+      const switchDiv = document.createElement('div');
+      switchDiv.className = 'toggle-switch-small';
+
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = initialState;
+      input.className = 'toggle-input-small';
+
+      const slider = document.createElement('span');
+      slider.className = 'toggle-slider-small';
+
+      input.addEventListener('change', function () {
+        if (onToggle) onToggle(this.checked, name);
+      });
+
+      switchDiv.appendChild(input);
+      switchDiv.appendChild(slider);
+
+      const nameWrap = document.createElement('span');
+      nameWrap.className = 'toggle-name-wrap-small';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'toggle-name-small';
+      nameSpan.textContent = name;
+      nameWrap.appendChild(nameSpan);
+
+      if (color) {
+        const colorDot = document.createElement('span');
+        colorDot.className = 'toggle-color-dot';
+        colorDot.style.backgroundColor = color;
+        nameWrap.appendChild(colorDot);
+      }
+
+      label.appendChild(switchDiv);
+      label.appendChild(nameWrap);
+      container.appendChild(label);
+
+      return container;
+    }
+
+    function handleToggle(state, name) {
+      appData.typeStates[name.toLowerCase()] = state;
+      updateMapData();
+    }
+
+    function createHousefrontFilter() {
+      const container = document.createElement('div');
+      container.id = "housefront-filter";
+
+      const title = document.createElement('div');
+      title.textContent = "Housefront:";
+      container.appendChild(title);
+
+      ["all", "yes", "no"].forEach(value => {
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = "radio";
+        input.name = "housefront";
+        input.value = value;
+        if (value === "all") input.checked = true;
+
+        input.addEventListener('change', () => {
+          appData.housefrontFilter = value;
+          updateMapData();
         });
-    </script>
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(value.charAt(0).toUpperCase() + value.slice(1)));
+        container.appendChild(label);
+      });
+
+      return container;
+    }
+
+    function createActiveUserFilter() {
+      const container = document.createElement('div');
+      container.id = "activeuser-filter";
+
+      const title = document.createElement('div');
+      title.textContent = "Active User:";
+      container.appendChild(title);
+
+      ["all", "yes", "no"].forEach(value => {
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = "radio";
+        input.name = "activeuser";
+        input.value = value;
+        if (value === "all") input.checked = true;
+
+        input.addEventListener('change', () => {
+          appData.activeUserFilter = value;
+          updateMapData();
+        });
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(value.charAt(0).toUpperCase() + value.slice(1)));
+        container.appendChild(label);
+      });
+
+      return container;
+    }
+
+    function createBikeTypeFilter() {
+      const container = document.createElement('div');
+      container.id = "biketype-filter";
+
+      const title = document.createElement('div');
+      title.textContent = "Bike Types:";
+      container.appendChild(title);
+
+      appData.bikeTypesDistinct.forEach(bikeType => {
+        const toggle = createToggleDiv(
+          bikeType.charAt(0).toUpperCase() + bikeType.slice(1),
+          (state) => {
+            appData.bikeTypeStates[bikeType] = state;
+            updateMapData();
+          },
+          true,
+          null
+        );
+        container.appendChild(toggle);
+        appData.bikeTypeStates[bikeType] = true;
+      });
+
+      return container;
+    }
+
+    map.on('style.load', () => {
+      map.addSource('satellite-source', {
+        type: 'raster',
+        url: 'mapbox://mapbox.satellite',
+        tileSize: 256
+      });
+
+      map.addLayer({
+        id: 'satellite-layer',
+        type: 'raster',
+        source: 'satellite-source',
+        layout: { visibility: 'none' },
+        paint: { 'raster-opacity': 0.8 }
+      });
+
+      map.addSource('pins', {
+        "type": "geojson",
+        "data": { "type": "FeatureCollection", "features": [] }
+      });
+
+      map.addLayer({
+        "id": "pins",
+        "type": "circle",
+        "source": "pins",
+        "paint": {
+          "circle-radius": 10,
+          "circle-color": ['get', 'color'],
+          "circle-stroke-width": 2,
+          "circle-stroke-color": ['get', 'strokeColor']
+        }
+      });
+
+      map.addLayer({
+        'id': 'price-labels',
+        'type': 'symbol',
+        'source': 'pins',
+        'layout': {
+          'visibility': 'visible',
+          'text-field': ['get', 'ref'],
+          'icon-text-fit': 'both',
+          'icon-image': 'popup',
+          'icon-allow-overlap': false,
+          'text-allow-overlap': false,
+          'text-ignore-placement': false,
+          'icon-ignore-placement': false,
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': 12,
+          'text-color': '#000000',
+          'text-offset': [0, 0],
+        }
+      });
+
+      map.on('click', 'pins', (e) => {
+        const coordinates = e.features[0].geometry.coordinates.slice();
+        const description = e.features[0].properties.description;
+
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+
+        new mapboxgl.Popup({ closeOnClick: true, offset: 5 })
+          .setLngLat(coordinates)
+          .setHTML(description)
+          .addTo(map);
+      });
+
+      map.on('mouseenter', 'pins', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+
+      map.on('mouseleave', 'pins', () => {
+        map.getCanvas().style.cursor = '';
+      });
+
+      d3.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTCug3Ckya-3WVZ-PvVx9joPo_CGOdIBg2UZBx7FhCrgZhi2YFOtbbc3xtP9vS5esuf9S_iJVvJxOgD/pub?output=csv")
+        .then(function (data) {
+          const bikeTypeSet = new Set();
+
+          data.forEach(d => {
+            const [lat, lng] = d.Coordinates.split(',').map(Number);
+            if (isNaN(lat) || isNaN(lng)) return;
+
+            const type = d.Type.toLowerCase();
+
+            let bikeTypesRaw = d.Biketype || "";
+            let bikeTypesArray = bikeTypesRaw.split(/\s*\n\s*|\s*,\s*/).map(bt => bt.toLowerCase().trim());
+            bikeTypesArray.forEach(bt => { if (bt) bikeTypeSet.add(bt); });
+
+            const activeUserRaw = (d['Active User'] || "").toLowerCase().trim();
+
+            const pin = {
+              "type": "Feature",
+              "geometry": {
+                "type": "Point",
+                "coordinates": [lng, lat]
+              },
+              "properties": {
+                "title": d.Name,
+                "description": `<h3>${d.Text}</h3>Housefront: ${d.Housefront || "N/A"}<br/>Bike Types: ${d.Biketype || "N/A"}<br/>Active User: ${d['Active User'] || "N/A"}`,
+                "icon": "monument",
+                "type": type,
+                "color": categoryColor[type] || "#000000",
+                "strokeColor": "#FFFFFF",
+                "ref": d.Ref ? `${d.Ref}` : "N/A",
+                "priority": parseFloat(d.Ref) || 0,
+                "housefront": d.Housefront ? d.Housefront.toLowerCase() : "no",
+                "biketype": d.Biketype ? d.Biketype : "",
+                "activeUser": activeUserRaw
+              }
+            };
+            appData.pins.push(pin);
+            appData.availableTypes.push(type);
+          });
+
+          appData.bikeTypesDistinct = Array.from(bikeTypeSet).sort();
+          appData.availableTypes = Array.from(new Set(appData.availableTypes)).sort();
+          appData.availableTypes.forEach(type => { appData.typeStates[type] = true; });
+
+          // Type toggles
+          appData.availableTypes.forEach(type => {
+            const displayName = type.charAt(0).toUpperCase() + type.slice(1);
+            const color = categoryColor[type] || "#000000";
+            filters.appendChild(createToggleDiv(displayName, handleToggle, true, color));
+          });
+
+          // Housefront filter
+          filters.appendChild(document.createElement('hr'));
+          filters.appendChild(createHousefrontFilter());
+
+          // Active User filter
+          filters.appendChild(createActiveUserFilter());
+
+          // BikeType filter
+          filters.appendChild(document.createElement('hr'));
+          filters.appendChild(createBikeTypeFilter());
+
+          // Map control toggles
+          filters.appendChild(document.createElement('hr'));
+          filters.appendChild(createToggleDiv("SATELLITE", () => {
+            const visibility = map.getLayoutProperty('satellite-layer', 'visibility');
+            map.setLayoutProperty('satellite-layer', 'visibility', visibility === 'visible' ? 'none' : 'visible');
+          }, false));
+
+          filters.appendChild(createToggleDiv("PRIORITY", () => {
+            const visibility = map.getLayoutProperty('price-labels', 'visibility');
+            map.setLayoutProperty('price-labels', 'visibility', visibility === 'visible' ? 'none' : 'visible');
+          }, true));
+
+          filters.appendChild(createToggleDiv("ALLOW OVERLAP", (state) => {
+            map.setLayoutProperty('price-labels', 'text-allow-overlap', state);
+            map.setLayoutProperty('price-labels', 'icon-allow-overlap', state);
+          }, false));
+
+          updateMapData();
+        })
+        .catch(function (error) {
+          console.error('Error loading or parsing data:', error);
+        });
+    });
+  </script>
 </body>
 
 </html>
